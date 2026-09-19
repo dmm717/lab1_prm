@@ -30,3 +30,7 @@
 
 # Local workspace metadata
 .qodo/
+
+# Environments & Secrets
+.env
+.env.*

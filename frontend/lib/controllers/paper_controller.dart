@@ -6,6 +6,7 @@ import '../models/keyword_model.dart';
 import '../models/paper_model.dart';
 import '../services/arxiv_service.dart';
 import '../services/backend_service.dart';
+import '../services/paper_storage_service.dart';
 
 enum IngestionStage {
   idle,
@@ -19,13 +20,10 @@ enum IngestionStage {
 
 class PaperController extends ChangeNotifier {
   late BackendService _backendService;
+  final PaperStorageService _storageService = PaperStorageService();
 
-  String _geminiApiKey = '';
+  String _geminiApiKey = AppConstants.defaultGeminiApiKey;
   String _selectedModel = AppConstants.defaultGeminiModel;
-  
-  // We no longer strictly need _grobidUrl here unless you want to keep the setting, 
-  // but let's assume Backend runs at a fixed URL for now. 
-  // We can repurpose grobidUrl setting as backendUrl in a real scenario.
   String _backendUrl = 'http://localhost:8080';
 
   bool _isGrobidAlive = false;
@@ -38,6 +36,8 @@ class PaperController extends ChangeNotifier {
   final List<ChatMessage> _messages = [];
   bool _isStreaming = false;
 
+  List<PaperModel> _recentPapers = [];
+
   // Getters
   String get grobidUrl => _backendUrl; // alias for compatibility with UI
   String get geminiApiKey => _geminiApiKey;
@@ -46,11 +46,14 @@ class PaperController extends ChangeNotifier {
   IngestionStage get stage => _stage;
   String get statusMessage => _statusMessage;
   double get progress => _progress;
+  int get progressPercentage => (_progress * 100).clamp(0, 100).toInt();
   String? get errorMessage => _errorMessage;
   PaperModel? get currentPaper => _currentPaper;
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isStreaming => _isStreaming;
   bool get hasPaper => _currentPaper != null;
+  bool get isFallbackMode => _currentPaper?.isFallback ?? false;
+  List<PaperModel> get recentPapers => List.unmodifiable(_recentPapers);
 
   PaperController() {
     _backendService = BackendService(backendUrl: _backendUrl);
@@ -59,19 +62,26 @@ class PaperController extends ChangeNotifier {
 
   Future<void> initSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _geminiApiKey = prefs.getString(AppConstants.keyGeminiApiKey) ?? '';
+    final savedKey = prefs.getString(AppConstants.keyGeminiApiKey) ?? '';
+    _geminiApiKey = savedKey.isNotEmpty ? savedKey : AppConstants.defaultGeminiApiKey;
     _backendUrl = prefs.getString(AppConstants.keyGrobidBaseUrl) ?? 'http://localhost:8080';
     _selectedModel = prefs.getString(AppConstants.keySelectedModel) ?? AppConstants.defaultGeminiModel;
 
     _backendService = BackendService(backendUrl: _backendUrl);
 
+    await loadRecentPapers();
     notifyListeners();
     await checkGrobidHealth();
   }
 
+  Future<void> loadRecentPapers() async {
+    _recentPapers = await _storageService.getRecentPapers();
+    notifyListeners();
+  }
+
   Future<void> updateSettings({
     required String apiKey,
-    required String grobidUrl, // we treat this as backendUrl now
+    required String grobidUrl,
     required String model,
   }) async {
     _geminiApiKey = apiKey.trim();
@@ -95,66 +105,91 @@ class PaperController extends ChangeNotifier {
     return _isGrobidAlive;
   }
 
-  Future<void> processArxivUrl(String inputUrl) async {
+  Future<void> processInputUrl(String inputUrl) async {
     _errorMessage = null;
+    final cleanUrl = inputUrl.trim();
+    if (cleanUrl.isEmpty) return;
 
-    final arxivId = ArxivService.extractArxivId(inputUrl);
-    if (arxivId == null) {
-      _errorMessage = 'Invalid ArXiv URL or ID. Format: https://arxiv.org/abs/2312.00752';
+    final isWebUrl = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://');
+    final arxivId = ArxivService.extractArxivId(cleanUrl);
+
+    if (!isWebUrl && arxivId == null) {
+      _errorMessage = 'Đường dẫn không hợp lệ. Vui lòng nhập liên kết bài báo (VnExpress, báo chí, hoặc ArXiv).';
       notifyListeners();
       return;
     }
 
     try {
-      // 1. Download PDF
       _stage = IngestionStage.downloadingPdf;
-      _statusMessage = 'Downloading PDF from ArXiv ($arxivId)...';
+      _statusMessage = 'Đang kết nối tới liên kết bài báo...';
       _progress = 0.15;
       notifyListeners();
 
-      final pdfBytes = await ArxivService.downloadPdf(
-        arxivId,
-        onProgress: (received, total) {
-          if (total > 0) {
-            _progress = 0.15 + (received / total) * 0.25;
-            notifyListeners();
-          }
-        },
-      );
+      PaperModel paper;
 
-      // 2. Backend Processing (Grobid + TEI + Gemini)
-      _stage = IngestionStage.synthesizingGemini;
-      _statusMessage = 'Uploading to backend and parsing...';
-      _progress = 0.50;
+      if (isWebUrl) {
+        _statusMessage = 'Đang tải và bóc tách nội dung bài báo...';
+        _progress = 0.40;
+        notifyListeners();
+
+        paper = await _backendService.processArticleUrl(
+          cleanUrl,
+          geminiApiKey: _geminiApiKey,
+        );
+      } else {
+        // Pure ArXiv ID without full URL
+        _statusMessage = 'Đang tải PDF từ ArXiv ($arxivId)...';
+        _progress = 0.30;
+        notifyListeners();
+
+        final pdfBytes = await ArxivService.downloadPdf(arxivId!);
+        _stage = IngestionStage.synthesizingGemini;
+        _statusMessage = 'Đang gửi lên máy chủ backend để phân tích...';
+        _progress = 0.60;
+        notifyListeners();
+
+        paper = await _backendService.processFulltextDocument(
+          pdfBytes,
+          filename: '$arxivId.pdf',
+          sourceId: arxivId,
+          sourceUrl: ArxivService.getPdfUrl(arxivId),
+          geminiApiKey: _geminiApiKey,
+        );
+      }
+
+      _statusMessage = 'Đang hoàn tất trích xuất cấu trúc & vector embeddings...';
+      _progress = 0.95;
       notifyListeners();
-
-      final paper = await _backendService.processFulltextDocument(
-        pdfBytes,
-        filename: '$arxivId.pdf',
-        sourceId: arxivId,
-        sourceUrl: ArxivService.getPdfUrl(arxivId),
-        geminiApiKey: _geminiApiKey,
-        onSendProgress: (sent, total) {
-          if (total > 0) {
-             _progress = 0.50 + (sent / total) * 0.20;
-             notifyListeners();
-          }
-        }
-      );
 
       _currentPaper = paper;
       _stage = IngestionStage.completed;
-      _statusMessage = 'Paper successfully ingested!';
+      _statusMessage = 'Đã phân tích bài báo thành công!';
       _progress = 1.0;
 
-      // Initialize chat with greeting
+      // Persist paper to offline local storage (Task F1)
+      await _storageService.savePaper(paper);
+      await loadRecentPapers();
+
+      // Check for saved chat history or create default greeting (Task F2)
+      final savedMessages = await _storageService.getChatHistory(paper.id);
       _messages.clear();
-      _messages.add(
-        ChatMessage.assistant(
-          'I have analyzed **"${paper.title}"**.\n\n'
-          'You can ask me any question about the methodology, results, or click on any of the key concepts on the left to explore deeper!',
-        ),
-      );
+
+      if (savedMessages.isNotEmpty) {
+        _messages.addAll(savedMessages);
+      } else {
+        _messages.add(
+          ChatMessage.assistant(
+            'Tôi đã phân tích thành công bài báo **"${paper.title}"**'
+            '${paper.isFallback ? ' *(chế độ dự phòng Gemini Multimodal)*' : ''}.\n\n'
+            '💡 **Gợi ý câu hỏi nhanh (bấm vào để hỏi AI ngay):**\n'
+            '- 📌 *Nội dung bài báo là j*\n'
+            '- 🔑 *Key word chính là j*\n'
+            '${paper.suggestedQuestions.isNotEmpty ? '- ❓ *${paper.suggestedQuestions.first}*\n' : ''}\n'
+            'Bạn có thể hỏi bằng bất kỳ ngôn ngữ nào, tôi sẽ phản hồi chính xác bằng đúng ngôn ngữ đó!',
+          ),
+        );
+        await _storageService.saveChatHistory(paper.id, _messages);
+      }
 
       notifyListeners();
     } catch (e) {
@@ -164,42 +199,77 @@ class PaperController extends ChangeNotifier {
     }
   }
 
+  // Alias for backward compatibility
+  Future<void> processArxivUrl(String inputUrl) => processInputUrl(inputUrl);
+
   Future<void> processLocalPdf(Uint8List pdfBytes, String filename) async {
     _errorMessage = null;
 
     try {
+      final cleanId = filename.replaceAll('.pdf', '');
       _stage = IngestionStage.synthesizingGemini;
-      _statusMessage = 'Uploading $filename and parsing...';
-      _progress = 0.50;
+      _statusMessage = 'Đang tải $filename ($progressPercentage%)...';
+      _progress = 0.20;
       notifyListeners();
 
       final paper = await _backendService.processFulltextDocument(
         pdfBytes,
         filename: filename,
-        sourceId: filename,
-        sourceUrl: 'local://file',
+        sourceId: cleanId,
+        sourceUrl: 'local://$filename',
         geminiApiKey: _geminiApiKey,
         onSendProgress: (sent, total) {
           if (total > 0) {
-             _progress = 0.50 + (sent / total) * 0.20;
-             notifyListeners();
+            final percent = sent / total;
+            _progress = 0.20 + percent * 0.50;
+            final mbSent = (sent / (1024 * 1024)).toStringAsFixed(1);
+            final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
+            _statusMessage = 'Đang tải file PDF lên: $mbSent MB / $mbTotal MB ($progressPercentage%)';
+            notifyListeners();
           }
-        }
+        },
       );
+
+      _statusMessage = 'Đang bóc tách cấu trúc và tổng hợp nội dung bài báo...';
+      _progress = 0.90;
+      notifyListeners();
 
       _currentPaper = paper;
       _stage = IngestionStage.completed;
-      _statusMessage = 'Paper successfully ingested!';
+      _statusMessage = paper.isFallback
+          ? 'Đã bóc tách bài báo thành công qua chế độ dự phòng Gemini Multimodal!'
+          : 'Đã phân tích bài báo thành công qua GROBID + Gemini!';
       _progress = 1.0;
 
-      // Initialize chat with greeting
+      // Persist paper to offline local storage (Task F1)
+      await _storageService.savePaper(paper);
+      await loadRecentPapers();
+
+      // Check for saved chat history or create default greeting (Task F2)
+      final savedMessages = await _storageService.getChatHistory(paper.id);
       _messages.clear();
-      _messages.add(
-        ChatMessage.assistant(
-          'I have analyzed **"${paper.title}"**.\n\n'
-          'You can ask me any question about the methodology, results, or click on any of the key concepts on the left to explore deeper!',
-        ),
-      );
+
+      if (savedMessages.isNotEmpty) {
+        _messages.addAll(savedMessages);
+      } else {
+        final imgrad = paper.effectiveImgrad;
+        _messages.add(
+          ChatMessage.assistant(
+            'Xin chào! Tôi đã bóc tách bài báo khoa học **"${paper.title}"** theo chuẩn cấu trúc **IMGRaD**:\n\n'
+            '📘 **[I - Introduction / Đặt Vấn Đề & Mục Tiêu]**\n'
+            '${imgrad.introduction.summary}\n\n'
+            '⚙️ **[M - Methodology / Phương Pháp Luận & Mô Hình]**\n'
+            '${imgrad.methodology.summary}\n\n'
+            '📊 **[R - Results / Kết Quả & Số Liệu Thực Nghiệm]**\n'
+            '${imgrad.results.summary}\n\n'
+            '💡 **[D - Discussion / Thảo Luận, Hạn Chế & Kết Luận]**\n'
+            '${imgrad.discussion.summary}\n\n'
+            '---\n'
+            '💡 *Bạn có thể bấm vào các gợi ý bên dưới hoặc hỏi bất kỳ chi tiết nào về từng phần IMGRaD.*',
+          ),
+        );
+        await _storageService.saveChatHistory(paper.id, _messages);
+      }
 
       notifyListeners();
     } catch (e) {
@@ -207,6 +277,54 @@ class PaperController extends ChangeNotifier {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
     }
+  }
+
+  void closeCurrentPaper() {
+    _currentPaper = null;
+    _messages.clear();
+    _stage = IngestionStage.idle;
+    _statusMessage = '';
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Selects a paper from local storage without re-downloading or re-uploading (Task F1)
+  Future<void> selectRecentPaper(PaperModel paper) async {
+    _currentPaper = paper;
+    _errorMessage = null;
+    _stage = IngestionStage.completed;
+    _statusMessage = 'Đã mở "${paper.title}" từ bộ nhớ máy.';
+
+    // Load persisted chat history for this paper (Task F2)
+    final savedMessages = await _storageService.getChatHistory(paper.id);
+    _messages.clear();
+
+    if (savedMessages.isNotEmpty) {
+      _messages.addAll(savedMessages);
+    } else {
+      _messages.add(
+        ChatMessage.assistant(
+          'Tôi đã mở bài báo **"${paper.title}"** từ thư viện đã lưu của bạn.\n\n'
+          'Bạn muốn tìm hiểu hoặc thảo luận điều gì về bài báo này?',
+        ),
+      );
+      await _storageService.saveChatHistory(paper.id, _messages);
+    }
+
+    notifyListeners();
+  }
+
+  /// Deletes a paper from local storage
+  Future<void> deleteRecentPaper(String paperId) async {
+    await _storageService.deletePaper(paperId);
+    if (_currentPaper?.id == paperId) {
+      _currentPaper = null;
+      _messages.clear();
+      _stage = IngestionStage.idle;
+      _statusMessage = '';
+    }
+    await loadRecentPapers();
+    notifyListeners();
   }
 
   Future<void> sendMessage(String text) async {
@@ -217,7 +335,7 @@ class PaperController extends ChangeNotifier {
       _messages.add(ChatMessage.user(cleanText));
       _messages.add(
         ChatMessage.assistant(
-          '⚠️ Please configure your Google Gemini API Key in **Settings** (top-right gear icon) to enable AI chat.',
+          '⚠️ Vui lòng cấu hình Google Gemini API Key trong phần **Cài đặt** (biểu tượng bánh răng góc trên bên phải) để kích hoạt tính năng đối thoại AI.',
         ),
       );
       notifyListeners();
@@ -246,10 +364,12 @@ class PaperController extends ChangeNotifier {
       }
 
       assistantMsg.isStreaming = false;
+      // Persist updated chat conversation (Task F2)
+      await _storageService.saveChatHistory(_currentPaper!.id, _messages);
     } catch (e) {
       assistantMsg.isStreaming = false;
       assistantMsg.isError = true;
-      assistantMsg.content = 'Error generating response: ${e.toString().replaceAll('Exception: ', '')}';
+      assistantMsg.content = 'Lỗi trong quá trình phản hồi: ${e.toString().replaceAll('Exception: ', '')}';
     } finally {
       _isStreaming = false;
       notifyListeners();
@@ -258,18 +378,36 @@ class PaperController extends ChangeNotifier {
 
   void askAboutKeyword(KeywordModel keyword) {
     sendMessage(
-      'Explain the concept of **"${keyword.term}"** as used in this paper. '
-      'How do the authors implement or apply it, and what is its role in the overall methodology?',
+      'Hãy giải thích chi tiết về khái niệm **"${keyword.term}"** trong bài báo này. '
+      'Các tác giả triển khai hoặc áp dụng nó như thế nào và vai trò của nó trong toàn bộ phương pháp nghiên cứu là gì?',
     );
   }
 
-  void clearChat() {
+  void clearChat() async {
     _messages.clear();
     if (_currentPaper != null) {
       _messages.add(
-        ChatMessage.assistant('Conversation reset. What else would you like to know about "${_currentPaper!.title}"?'),
+        ChatMessage.assistant('Cuộc trò chuyện đã được đặt lại. Bạn muốn tìm hiểu thêm điều gì về "${_currentPaper!.title}"?'),
       );
+      await _storageService.saveChatHistory(_currentPaper!.id, _messages);
     }
     notifyListeners();
+  }
+
+  /// Exports current chat history as Markdown
+  String exportChatAsMarkdown() {
+    if (_currentPaper == null) return '';
+    final buffer = StringBuffer();
+    buffer.writeln('# Lịch Sử Hội Thoại: ${_currentPaper!.title}');
+    buffer.writeln('**Thời gian xuất**: ${DateTime.now().toIso8601String()}\n');
+    buffer.writeln('---\n');
+
+    for (final msg in _messages) {
+      final role = msg.role == MessageRole.user ? '### 👤 Người Dùng' : '### 🤖 Trợ Lý PaperChat AI';
+      buffer.writeln('$role\n');
+      buffer.writeln('${msg.content}\n');
+    }
+
+    return buffer.toString();
   }
 }

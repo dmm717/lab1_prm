@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/paper_controller.dart';
 import '../../core/theme/app_theme.dart';
@@ -16,7 +17,7 @@ class KeywordChipsPanel extends StatelessWidget {
         return AppTheme.secondary;
       case 'architecture':
       case 'model':
-        return AppTheme.primaryLight;
+        return AppTheme.primary;
       case 'benchmark':
       case 'dataset':
         return AppTheme.accent;
@@ -24,6 +25,24 @@ class KeywordChipsPanel extends StatelessWidget {
         return AppTheme.warning;
       default:
         return AppTheme.textSecondary;
+    }
+  }
+
+  Color _getCategorySubtle(String category) {
+    switch (category.toLowerCase()) {
+      case 'methodology':
+      case 'method':
+        return AppTheme.secondarySubtle;
+      case 'architecture':
+      case 'model':
+        return AppTheme.primarySubtle;
+      case 'benchmark':
+      case 'dataset':
+        return AppTheme.accentSubtle;
+      case 'theory':
+        return AppTheme.warningSubtle;
+      default:
+        return AppTheme.backgroundSubtle;
     }
   }
 
@@ -38,51 +57,66 @@ class KeywordChipsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.key, size: 16, color: AppTheme.secondary),
-            SizedBox(width: 6),
+            const Icon(Icons.hub_rounded, size: 14, color: AppTheme.secondary),
+            const SizedBox(width: 6),
             Text(
-              'Key Concepts & Keywords (Click to ask AI)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
+              'KHÁI NIỆM & TỪ KHÓA CHỦ ĐẠO (BẤM ĐỂ HỎI AI)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.9,
+                color: AppTheme.secondary,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: keywords.map((keyword) {
             final categoryColor = _getCategoryColor(keyword.category);
+            final categorySubtle = _getCategorySubtle(keyword.category);
 
             return Tooltip(
               message: keyword.context.isNotEmpty
-                  ? '${keyword.category}: ${keyword.context}'
-                  : 'Ask AI about "${keyword.term}"',
-              child: ActionChip(
-                backgroundColor: AppTheme.surfaceVariant.withValues(alpha: 0.6),
-                side: BorderSide(color: categoryColor.withValues(alpha: 0.4)),
-                avatar: Container(
-                  width: 8,
-                  height: 8,
+                  ? '${keyword.category.toUpperCase()}: ${keyword.context}'
+                  : 'Hỏi AI về "${keyword.term}"',
+              child: InkWell(
+                onTap: () => controller.askAboutKeyword(keyword),
+                borderRadius: BorderRadius.circular(99),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
                   decoration: BoxDecoration(
-                    color: categoryColor,
-                    shape: BoxShape.circle,
+                    color: categorySubtle,
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: categoryColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: categoryColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        keyword.term,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                label: Text(
-                  keyword.term,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                onPressed: () => controller.askAboutKeyword(keyword),
               ),
             );
           }).toList(),
@@ -91,3 +125,4 @@ class KeywordChipsPanel extends StatelessWidget {
     );
   }
 }
+

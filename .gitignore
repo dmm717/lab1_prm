@@ -1,0 +1,29 @@
+# Environments & Secrets
+.env
+.env.*
+*.env
+
+# Cache directories
+.cache/
+backend/.cache/
+
+# OS and IDE Files
+.DS_Store
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Dart & Flutter artifacts
+.dart_tool/
+.dart_frog/
+build/
+*.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.metadata
+*.log

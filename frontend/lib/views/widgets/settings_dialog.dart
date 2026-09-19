@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/paper_controller.dart';
 import '../../core/constants/app_constants.dart';
@@ -49,7 +50,6 @@ class _SettingsDialogState extends State<SettingsDialog> {
     });
 
     final controller = context.read<PaperController>();
-    // Temporarily test with the entered URL
     await controller.updateSettings(
       apiKey: _apiKeyController.text,
       grobidUrl: _grobidUrlController.text,
@@ -59,7 +59,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
     setState(() {
       _testingConnection = false;
-      _testResult = alive ? 'GROBID server is active!' : 'Connection failed. Is Docker running?';
+      _testResult = alive ? 'Máy chủ GROBID đang hoạt động bình thường!' : 'Kết nối thất bại. Hãy kiểm tra GROBID hoặc Docker đã bật chưa.';
     });
   }
 
@@ -77,13 +77,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
     return Dialog(
       backgroundColor: AppTheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.surfaceVariant),
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: AppTheme.border),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 540),
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(26.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -91,19 +91,36 @@ class _SettingsDialogState extends State<SettingsDialog> {
               // Header
               Row(
                 children: [
-                  const Icon(Icons.settings, color: AppTheme.primaryLight),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Application Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primarySubtle,
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: const Icon(Icons.tune_rounded, color: AppTheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cài Đặt Hệ Thống',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      Text(
+                        'Quản lý mô hình AI, khóa API và cổng dịch vụ tài liệu',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: AppTheme.textMuted),
+                      ),
+                    ],
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: AppTheme.textMuted),
+                    icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textMuted),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -111,20 +128,24 @@ class _SettingsDialogState extends State<SettingsDialog> {
               const SizedBox(height: 20),
 
               // 1. Google Gemini API Key
-              const Text(
-                'Google Gemini API Key',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+              Text(
+                'Khóa Google Gemini API Key',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _apiKeyController,
                 obscureText: _obscureKey,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary, fontSize: 13.5),
                 decoration: InputDecoration(
-                  hintText: 'Enter AI Studio API Key (AIzaSy...)',
+                  hintText: 'Nhập AI Studio API Key (AIzaSy...)',
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureKey ? Icons.visibility_off : Icons.visibility,
+                      _obscureKey ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                       size: 18,
                       color: AppTheme.textMuted,
                     ),
@@ -133,45 +154,63 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Used for automated keyword extraction and paper chat (get free at aistudio.google.com)',
-                style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+              Text(
+                'Dùng cho vector embedding (text-embedding-004) và suy luận Gemini 2.0.',
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppTheme.textMuted),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               // 2. AI Model Selection
-              const Text(
-                'Gemini Model Tier',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+              Text(
+                'Chọn Phiên Bản Mô Hình Gemini',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 initialValue: _selectedModel,
-                dropdownColor: AppTheme.surfaceVariant,
-                style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                dropdownColor: AppTheme.surface,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textPrimary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
                 ),
-                items: const [
+                decoration: const InputDecoration(
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                items: [
                   DropdownMenuItem(
                     value: AppConstants.defaultGeminiModel,
-                    child: Text('Gemini 2.0 Flash (Fast & Cost-Efficient)'),
+                    child: Text(
+                      'Gemini 3.5 Flash (Siêu nhanh, tối ưu RAG)',
+                      style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: AppConstants.advancedGeminiModel,
-                    child: Text('Gemini 1.5 Pro (Deepest Academic Reasoning)'),
+                    child: Text(
+                      'Gemini 3.1 Pro (Ngữ cảnh học thuật chuyên sâu)',
+                      style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+                    ),
                   ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedModel = val);
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               // 3. GROBID Service Endpoint
-              const Text(
-                'Local GROBID Server Endpoint',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+              Text(
+                'Địa Chỉ Cổng Dịch Vụ GROBID',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const SizedBox(height: 6),
               Row(
@@ -179,26 +218,38 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   Expanded(
                     child: TextField(
                       controller: _grobidUrlController,
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary, fontSize: 13.5),
                       decoration: const InputDecoration(
                         hintText: 'http://localhost:8070',
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: _testingConnection ? null : _testGrobid,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.primaryLight),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  InkWell(
+                    onTap: _testingConnection ? null : _testGrobid,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundSubtle,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: _testingConnection
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                            )
+                          : Text(
+                              'Kiểm Tra',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
-                    child: _testingConnection
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 1.5),
-                          )
-                        : const Text('Test', style: TextStyle(color: AppTheme.primaryLight)),
                   ),
                 ],
               ),
@@ -206,9 +257,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 const SizedBox(height: 6),
                 Text(
                   _testResult!,
-                  style: TextStyle(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: _testResult!.contains('active') ? AppTheme.accent : AppTheme.error,
+                    fontWeight: FontWeight.w600,
+                    color: _testResult!.contains('hoạt động') ? AppTheme.accent : AppTheme.error,
                   ),
                 ),
               ],
@@ -220,12 +272,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                    child: Text(
+                      'Hủy',
+                      style: GoogleFonts.plusJakartaSans(color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _saveSettings,
-                    child: const Text('Save Changes'),
+                    child: const Text('Lưu Thay Đổi'),
                   ),
                 ],
               ),
@@ -236,3 +291,4 @@ class _SettingsDialogState extends State<SettingsDialog> {
     );
   }
 }
+

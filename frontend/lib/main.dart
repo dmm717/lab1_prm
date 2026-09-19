@@ -21,7 +21,7 @@ class PaperChatApp extends StatelessWidget {
       child: MaterialApp(
         title: 'PaperChat AI — Academic Paper Dialogue',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme,
         home: const HomeScreen(),
       ),
     );

@@ -11,7 +11,11 @@ class BackendService {
   BackendService({
     this.backendUrl = 'http://localhost:8080',
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio = dio ??
+            Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 20),
+              receiveTimeout: const Duration(seconds: 180),
+            ));
 
   /// Checks if backend is alive
   Future<bool> checkIsAlive() async {
@@ -57,11 +61,67 @@ class BackendService {
         return PaperModel.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception(
-          'Backend returned unexpected status code: ${response.statusCode}\n${response.data}',
+          'Backend returned status code ${response.statusCode}: ${response.data}',
         );
       }
+    } on DioException catch (e) {
+      if (e.response?.data is Map) {
+        final errMap = e.response!.data as Map;
+        final errorMsg = errMap['error']?.toString() ?? 'Server processing error';
+        throw Exception(errorMsg);
+      } else if (e.response?.data is String && (e.response!.data as String).isNotEmpty) {
+        throw Exception(e.response!.data.toString());
+      } else if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw Exception(
+          'Cannot connect to backend at $backendUrl. Please ensure Dart Frog is running on port 8080.',
+        );
+      }
+      throw Exception('Backend communication error: ${e.message}');
     } catch (e) {
-      throw Exception('Backend processing error: ${e.toString()}');
+      throw Exception('Processing error: ${e.toString()}');
+    }
+  }
+
+  /// Sends a web article URL (or PDF URL) to Dart Backend and returns the parsed PaperModel
+  Future<PaperModel> processArticleUrl(
+    String url, {
+    String geminiApiKey = '',
+  }) async {
+    try {
+      final response = await _dio.post(
+        '$backendUrl/api/papers/url',
+        data: {'url': url},
+        options: Options(
+          headers: {
+            'gemini-api-key': geminiApiKey,
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return PaperModel.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception(
+          'Backend trả về mã ${response.statusCode}: ${response.data}',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response?.data is Map) {
+        final errMap = e.response!.data as Map;
+        final errorMsg = errMap['error']?.toString() ?? 'Lỗi xử lý từ máy chủ';
+        throw Exception(errorMsg);
+      } else if (e.response?.data is String && (e.response!.data as String).isNotEmpty) {
+        throw Exception(e.response!.data.toString());
+      } else if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw Exception(
+          'Không thể kết nối tới máy chủ backend tại $backendUrl. Vui lòng đảm bảo backend đang chạy.',
+        );
+      }
+      throw Exception('Lỗi kết nối máy chủ: ${e.message}');
+    } catch (e) {
+      throw Exception('Lỗi xử lý bài báo: ${e.toString()}');
     }
   }
 
@@ -100,6 +160,11 @@ class BackendService {
         final decoded = utf8.decode(chunk);
         yield decoded;
       }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError) {
+        throw Exception('Cannot connect to backend. Please make sure backend is running.');
+      }
+      throw Exception('Chat error: ${e.message}');
     } catch (e) {
       throw Exception('Chat error: $e');
     }

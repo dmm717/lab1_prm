@@ -1,14 +1,17 @@
+import 'imgrad_model.dart';
 import 'keyword_model.dart';
 
 class PaperSection {
   final String title;
   final String content;
   final String? sectionNumber;
+  List<double>? embedding;
 
   PaperSection({
     required this.title,
     required this.content,
     this.sectionNumber,
+    this.embedding,
   });
 
   String get displayName =>
@@ -20,12 +23,16 @@ class PaperSection {
         title: json['title'] as String? ?? '',
         content: json['content'] as String? ?? '',
         sectionNumber: json['sectionNumber'] as String?,
+        embedding: (json['embedding'] as List<dynamic>?)
+            ?.map((e) => (e as num).toDouble())
+            .toList(),
       );
 
   Map<String, dynamic> toJson() => {
         'title': title,
         'content': content,
         'sectionNumber': sectionNumber,
+        if (embedding != null) 'embedding': embedding,
       };
 }
 
@@ -43,6 +50,8 @@ class PaperModel {
   List<String> contributions;
   List<String> suggestedQuestions;
   String rawTeiXml;
+  bool isFallback;
+  ImgradModel? imgrad;
 
   PaperModel({
     required this.id,
@@ -58,6 +67,8 @@ class PaperModel {
     this.contributions = const [],
     this.suggestedQuestions = const [],
     this.rawTeiXml = '',
+    this.isFallback = false,
+    this.imgrad,
   });
 
   factory PaperModel.fromJson(Map<String, dynamic> json) => PaperModel(
@@ -74,6 +85,8 @@ class PaperModel {
         contributions: (json['contributions'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
         suggestedQuestions: (json['suggestedQuestions'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
         rawTeiXml: json['rawTeiXml'] as String? ?? '',
+        isFallback: json['isFallback'] as bool? ?? false,
+        imgrad: json['imgrad'] != null ? ImgradModel.fromJson(json['imgrad'] as Map<String, dynamic>) : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -90,7 +103,78 @@ class PaperModel {
         'contributions': contributions,
         'suggestedQuestions': suggestedQuestions,
         'rawTeiXml': rawTeiXml,
+        'isFallback': isFallback,
+        if (imgrad != null) 'imgrad': imgrad!.toJson(),
       };
+
+  ImgradModel get effectiveImgrad {
+    if (imgrad != null) return imgrad!;
+
+    final introSections = <PaperSection>[];
+    final methodSections = <PaperSection>[];
+    final resultSections = <PaperSection>[];
+    final discussSections = <PaperSection>[];
+    final otherSections = <PaperSection>[];
+
+    final introReg = RegExp(r'(intro|background|problem|motivation|bối cảnh|đặt vấn đề)', caseSensitive: false);
+    final methodReg = RegExp(r'(method|model|approach|framework|architecture|algorithm|dataset|setup|material|phương pháp|mô hình)', caseSensitive: false);
+    final resultReg = RegExp(r'(result|experiment|evaluation|finding|benchmark|empirical|kết quả|thực nghiệm)', caseSensitive: false);
+    final discussReg = RegExp(r'(discuss|limit|future|conclu|thảo luận|hạn chế|kết luận)', caseSensitive: false);
+
+    for (final s in sections) {
+      final t = s.title.toLowerCase();
+      if (introReg.hasMatch(t)) {
+        introSections.add(s);
+      } else if (methodReg.hasMatch(t)) {
+        methodSections.add(s);
+      } else if (resultReg.hasMatch(t)) {
+        resultSections.add(s);
+      } else if (discussReg.hasMatch(t)) {
+        discussSections.add(s);
+      } else {
+        otherSections.add(s);
+      }
+    }
+
+    return ImgradModel(
+      introduction: ImgradPillar(
+        code: 'I',
+        name: 'Introduction',
+        vietnameseTitle: 'Đặt Vấn Đề & Mục Tiêu',
+        summary: abstractText.isNotEmpty ? abstractText : (introSections.isNotEmpty ? introSections.first.content : executiveSummary),
+        keyPoints: contributions.isNotEmpty ? contributions.take(2).toList() : ['Đặt vấn đề và bối cảnh nghiên cứu'],
+        sectionsMapped: introSections.map((e) => e.displayName).toList(),
+        rawContent: introSections.map((e) => '${e.displayName}\n${e.content}').join('\n\n'),
+      ),
+      methodology: ImgradPillar(
+        code: 'M',
+        name: 'Methodology',
+        vietnameseTitle: 'Phương Pháp & Thiết Kế Nghiên Cứu',
+        summary: methodSections.isNotEmpty ? methodSections.map((e) => e.content).take(2).join('\n\n') : 'Chi tiết phương pháp và kiến trúc nghiên cứu.',
+        keyPoints: keywords.where((k) => k.category.toLowerCase().contains('method') || k.category.toLowerCase().contains('model')).map((e) => e.term).toList(),
+        sectionsMapped: methodSections.map((e) => e.displayName).toList(),
+        rawContent: methodSections.map((e) => '${e.displayName}\n${e.content}').join('\n\n'),
+      ),
+      results: ImgradPillar(
+        code: 'R',
+        name: 'Results',
+        vietnameseTitle: 'Kết Quả & Số Liệu Thực Nghiệm',
+        summary: resultSections.isNotEmpty ? resultSections.map((e) => e.content).take(2).join('\n\n') : 'Kết quả thực nghiệm và số liệu định lượng.',
+        keyPoints: contributions.length > 2 ? [contributions[2]] : ['Kết quả đánh giá định lượng'],
+        sectionsMapped: resultSections.map((e) => e.displayName).toList(),
+        rawContent: resultSections.map((e) => '${e.displayName}\n${e.content}').join('\n\n'),
+      ),
+      discussion: ImgradPillar(
+        code: 'D',
+        name: 'Discussion',
+        vietnameseTitle: 'Thảo Luận, Hạn Chế & Kết Luận',
+        summary: discussSections.isNotEmpty ? discussSections.map((e) => e.content).take(2).join('\n\n') : 'Thảo luận ý nghĩa thực tiễn, hạn chế và kết luận nghiên cứu.',
+        keyPoints: ['Hạn chế và hướng phát triển tương lai'],
+        sectionsMapped: discussSections.map((e) => e.displayName).toList(),
+        rawContent: discussSections.map((e) => '${e.displayName}\n${e.content}').join('\n\n'),
+      ),
+    );
+  }
 
   String get fullStructuredText {
     final buffer = StringBuffer();
