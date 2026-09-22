@@ -3,16 +3,20 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Brand Color Palette (Pure White & Modern Emerald / Mint Green)
-  static const Color primary = Color(0xFF059669); // Emerald 600 - Main Green
-  static const Color primaryLight = Color(0xFF10B981); // Emerald 500 - Vibrant Mint
-  static const Color primaryDark = Color(0xFF047857); // Emerald 700 - Deep Forest Green
-  static const Color primarySubtle = Color(0xFFECFDF5); // Emerald 50 - Clean Mint Wash
+  static const Color primary = Color(0xFF245B4D); // Emerald 600 - Main Green
+  static const Color primaryLight =
+      Color(0xFF397765); // Emerald 500 - Vibrant Mint
+  static const Color primaryDark =
+      Color(0xFF183E35); // Emerald 700 - Deep Forest Green
+  static const Color primarySubtle =
+      Color(0xFFE9F1EB); // Emerald 50 - Clean Mint Wash
 
-  static const Color secondary = Color(0xFF0D9488); // Teal 600 - Harmonious Cyan-Green
-  static const Color secondarySubtle = Color(0xFFF0FDFA); // Teal 50
+  static const Color secondary =
+      Color(0xFF527164); // Teal 600 - Harmonious Cyan-Green
+  static const Color secondarySubtle = Color(0xFFF0F4EF); // Teal 50
 
-  static const Color accent = Color(0xFF16A34A); // Green 600
-  static const Color accentSubtle = Color(0xFFDCFCE7); // Green 100
+  static const Color accent = Color(0xFF397765); // Green 600
+  static const Color accentSubtle = Color(0xFFE2EDE5); // Green 100
 
   static const Color warning = Color(0xFFD97706); // Amber 600
   static const Color warningSubtle = Color(0xFFFFFBEB); // Amber 50
@@ -21,94 +25,95 @@ class AppTheme {
   static const Color errorSubtle = Color(0xFFFFF1F2); // Rose 50
 
   // Bright, High-End Surface Colors (Porcelain & Pure White)
-  static const Color background = Color(0xFFF7FAF8); // Clean Porcelain with hint of mint
-  static const Color backgroundSubtle = Color(0xFFF0FDF4); // Emerald 50
+  static const Color background =
+      Color(0xFFF3F5F1); // Clean Porcelain with hint of mint
+  static const Color backgroundSubtle = Color(0xFFEEF2EC); // Emerald 50
   static const Color surface = Color(0xFFFFFFFF); // Pure Crisp White
-  static const Color surfaceVariant = Color(0xFFF5F9F6); // Soft Card Variation
-  static const Color border = Color(0xFFE2EFE5); // Hairline Soft Green-Gray
+  static const Color surfaceVariant = Color(0xFFF6F8F4); // Soft Card Variation
+  static const Color border = Color(0xFFDCE4DB); // Hairline Soft Green-Gray
   static const Color borderSubtle = Color(0x12059669); // 7% Emerald hairline
 
   // High-Contrast Typography Colors
-  static const Color textPrimary = Color(0xFF0F1F17); // Deep Forest Charcoal
-  static const Color textSecondary = Color(0xFF374E42); // Balanced Slate-Green
-  static const Color textMuted = Color(0xFF7D9588); // Subtle Sage Gray
+  static const Color textPrimary = Color(0xFF1A2821); // Deep Forest Charcoal
+  static const Color textSecondary = Color(0xFF44564B); // Balanced Slate-Green
+  static const Color textMuted = Color(0xFF758579); // Subtle Sage Gray
 
   // Decorative Gradients
   static const LinearGradient emeraldGradient = LinearGradient(
-    colors: [Color(0xFF10B981), Color(0xFF059669)],
+    colors: [Color(0xFF397765), Color(0xFF245B4D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient emeraldShineGradient = LinearGradient(
-    colors: [Color(0xFF34D399), Color(0xFF059669)],
+    colors: [Color(0xFF6A9A81), Color(0xFF245B4D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient heroBackgroundGradient = LinearGradient(
-    colors: [Color(0xFFECFDF5), Color(0xFFF7FAF8), Color(0xFFFFFFFF)],
+    colors: [Color(0xFFE9F1EB), Color(0xFFF3F5F1), Color(0xFFFFFFFF)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient cardAccentGradient = LinearGradient(
-    colors: [Color(0xFF10B981), Color(0xFF34D399), Color(0xFF059669)],
+    colors: [Color(0xFF397765), Color(0xFF6A9A81), Color(0xFF245B4D)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   static const LinearGradient subtleCardGradient = LinearGradient(
-    colors: [Color(0xFFFFFFFF), Color(0xFFF9FCFA)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFAFBF8)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient mintPillGradient = LinearGradient(
-    colors: [Color(0xFFECFDF5), Color(0xFFF0FDF4)],
+    colors: [Color(0xFFE9F1EB), Color(0xFFEEF2EC)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   // Soft Ambient Box Shadows with Emerald Tint
   static List<BoxShadow> get softShadow => [
-    const BoxShadow(
-      color: Color(0x0A0F1F17),
-      blurRadius: 16,
-      offset: Offset(0, 4),
-      spreadRadius: 0,
-    ),
-    const BoxShadow(
-      color: Color(0x06059669),
-      blurRadius: 4,
-      offset: Offset(0, 1),
-      spreadRadius: 0,
-    ),
-  ];
+        const BoxShadow(
+          color: Color(0x0A0F1F17),
+          blurRadius: 16,
+          offset: Offset(0, 4),
+          spreadRadius: 0,
+        ),
+        const BoxShadow(
+          color: Color(0x06059669),
+          blurRadius: 4,
+          offset: Offset(0, 1),
+          spreadRadius: 0,
+        ),
+      ];
 
   static List<BoxShadow> get emeraldGlow => [
-    BoxShadow(
-      color: const Color(0xFF10B981).withValues(alpha: 0.25),
-      blurRadius: 14,
-      offset: const Offset(0, 4),
-      spreadRadius: 0,
-    ),
-  ];
+        BoxShadow(
+          color: const Color(0xFF397765).withValues(alpha: 0.25),
+          blurRadius: 14,
+          offset: const Offset(0, 4),
+          spreadRadius: 0,
+        ),
+      ];
 
   static List<BoxShadow> get cardHoverShadow => [
-    const BoxShadow(
-      color: Color(0x10059669),
-      blurRadius: 24,
-      offset: Offset(0, 8),
-      spreadRadius: -2,
-    ),
-    const BoxShadow(
-      color: Color(0x080F1F17),
-      blurRadius: 6,
-      offset: Offset(0, 2),
-      spreadRadius: 0,
-    ),
-  ];
+        const BoxShadow(
+          color: Color(0x10059669),
+          blurRadius: 24,
+          offset: Offset(0, 8),
+          spreadRadius: -2,
+        ),
+        const BoxShadow(
+          color: Color(0x080F1F17),
+          blurRadius: 6,
+          offset: Offset(0, 2),
+          spreadRadius: 0,
+        ),
+      ];
 
   /// Bright, Emerald & White High-End Modern Theme
   static ThemeData get lightTheme {
@@ -167,7 +172,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primary, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -176,7 +182,7 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(9),
           ),
           textStyle: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.w700,
@@ -187,10 +193,11 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: backgroundSubtle,
-        labelStyle: GoogleFonts.plusJakartaSans(color: textPrimary, fontSize: 11.5, fontWeight: FontWeight.w600),
+        labelStyle: GoogleFonts.plusJakartaSans(
+            color: textPrimary, fontSize: 11.5, fontWeight: FontWeight.w600),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(9),
           side: const BorderSide(color: border, width: 1),
         ),
       ),

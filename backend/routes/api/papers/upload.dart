@@ -1,36 +1,11 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:backend/models/paper_model.dart';
+import 'package:backend/core/config/backend_config.dart';
 import 'package:backend/services/cache_service.dart';
-import 'package:backend/services/embedding_service.dart';
 import 'package:backend/services/gemini_service.dart';
 import 'package:backend/services/grobid_service.dart';
 import 'package:backend/services/tei_parser_service.dart';
-
-String _resolveApiKey(Request request) {
-  final headerKey = request.headers['gemini-api-key']?.trim() ?? '';
-  if (headerKey.isNotEmpty) return headerKey;
-
-  final envKey = Platform.environment['GEMINI_API_KEY']?.trim() ?? '';
-  if (envKey.isNotEmpty) return envKey;
-
-  for (final path in ['.env', '../.env', 'backend/.env']) {
-    try {
-      final f = File(path);
-      if (f.existsSync()) {
-        for (final line in f.readAsLinesSync()) {
-          final t = line.trim();
-          if (t.startsWith('GEMINI_API_KEY=')) {
-            final val = t.substring('GEMINI_API_KEY='.length).trim();
-            if (val.isNotEmpty) return val;
-          }
-        }
-      }
-    } catch (_) {}
-  }
-  return '';
-}
 
 Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
@@ -45,43 +20,41 @@ Future<Response> onRequest(RequestContext context) async {
   try {
     final formData = await request.formData();
     final file = formData.files['file'];
-    final apiKey = _resolveApiKey(request);
-
-    if (apiKey.isEmpty) {
-      return Response.json(
-        statusCode: 401,
-        body: {
-          'error': 'Gemini API Key is not configured. Please set it in Settings or .env file.',
-          'code': 'MISSING_API_KEY',
-        },
-      );
-    }
+    final apiKey = BackendConfig.geminiApiKey;
+    final aiEnabled = apiKey.isNotEmpty;
 
     if (file == null) {
       return Response.json(
         statusCode: 400,
         body: {
-          'error': 'No file uploaded. Key "file" is required in multipart form data.',
+          'error':
+              'No file uploaded. Key "file" is required in multipart form data.',
           'code': 'NO_FILE_UPLOADED',
         },
       );
     }
 
     final bytes = await file.readAsBytes();
-    if (bytes.isEmpty) {
+    if (bytes.length < 5 ||
+        bytes[0] != 0x25 ||
+        bytes[1] != 0x50 ||
+        bytes[2] != 0x44 ||
+        bytes[3] != 0x46 ||
+        bytes[4] != 0x2D) {
       return Response.json(
         statusCode: 400,
         body: {
-          'error': 'Uploaded file is empty.',
-          'code': 'EMPTY_FILE',
+          'error': 'Tệp đã chọn không phải PDF hợp lệ.',
+          'code': 'INVALID_PDF',
         },
       );
     }
 
     final uint8Bytes = Uint8List.fromList(bytes);
-    final sourceId = formData.fields['sourceId']?.trim().isNotEmpty == true
-        ? formData.fields['sourceId']!.trim()
-        : file.name.replaceAll('.pdf', '');
+    final sourceId = file.name.replaceFirst(
+      RegExp(r'\.pdf$', caseSensitive: false),
+      '',
+    );
     final sourceUrl = formData.fields['sourceUrl']?.trim() ?? '';
 
     // 1. Check Caching Layer (Task B2)
@@ -89,7 +62,28 @@ Future<Response> onRequest(RequestContext context) async {
     final cacheKey = cacheService.generateKey(sourceId, uint8Bytes);
     final cachedPaper = cacheService.get(cacheKey);
 
-    if (cachedPaper != null) {
+    if (cachedPaper != null && cachedPaper['isFallback'] != true) {
+      if (aiEnabled &&
+          (cachedPaper['executiveSummary'] == null ||
+              (cachedPaper['executiveSummary'] as String).isEmpty ||
+              (cachedPaper['executiveSummary'] as String).startsWith(
+                'Chưa thể',
+              ))) {
+        final cachedModel = PaperModel.fromJson(cachedPaper);
+        try {
+          await GeminiService(
+            apiKey: apiKey,
+            modelName: BackendConfig.geminiModel,
+          ).extractPaperSynthesis(cachedModel);
+          cacheService.set(cacheKey, cachedModel.toJson());
+          return Response.json(
+            body: cachedModel.toJson(),
+            headers: {'X-Cache': 'HIT'},
+          );
+        } catch (_) {
+          // TEI extraction remains usable when Gemini is unavailable.
+        }
+      }
       return Response.json(
         body: cachedPaper,
         headers: {
@@ -100,9 +94,7 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     PaperModel paper;
-    final geminiService = GeminiService(apiKey: apiKey);
-
-    // 2. Try GROBID processing, Fallback to Gemini Multimodal if GROBID fails (Task B1)
+    // GROBID is the required extraction engine for local scientific PDFs.
     try {
       final grobidService = GrobidService();
       final teiXml = await grobidService.processFulltextDocument(
@@ -115,59 +107,47 @@ Future<Response> onRequest(RequestContext context) async {
         teiXmlString: teiXml,
         sourceId: sourceId,
         sourceUrl: sourceUrl,
+        paperId: cacheKey,
       );
+    } catch (error) {
+      return Response.json(
+        statusCode: 503,
+        body: {
+          'error':
+              'GROBID không thể trích xuất PDF. Kiểm tra Docker và thử lại. Chi tiết: $error',
+          'code': 'GROBID_EXTRACTION_FAILED',
+        },
+      );
+    }
 
-      // Synthesize via Gemini
-      await geminiService.extractPaperSynthesis(paper);
-    } catch (grobidOrTeiError) {
-      // Fallback: Use Gemini Multimodal directly on the raw PDF bytes
+    if (paper.sections.isEmpty && paper.abstractText.isEmpty) {
+      return Response.json(
+        statusCode: 422,
+        body: {
+          'error':
+              'GROBID không tìm thấy nội dung văn bản trong PDF. Tệp có thể là bản quét ảnh.',
+          'code': 'NO_EXTRACTED_TEXT',
+        },
+      );
+    }
+
+    if (aiEnabled) {
       try {
-        paper = await geminiService.parseAndSynthesizePdfDirectly(
-          pdfBytes: uint8Bytes,
-          sourceId: sourceId,
-          sourceUrl: sourceUrl,
-          filename: file.name,
-        );
-      } catch (geminiFallbackError) {
-        final errStr = geminiFallbackError.toString().toLowerCase();
-        if (errStr.contains('api_key_invalid') || errStr.contains('api key not valid')) {
-          return Response.json(
-            statusCode: 401,
-            body: {
-              'error': 'Google Gemini API Key is invalid or expired.',
-              'code': 'INVALID_API_KEY',
-            },
-          );
-        } else if (errStr.contains('quota') || errStr.contains('resource_exhausted') || errStr.contains('429')) {
-          return Response.json(
-            statusCode: 429,
-            body: {
-              'error': 'Gemini API quota exceeded or rate limited (429). Please try again in a few moments.',
-              'code': 'RATE_LIMIT_EXCEEDED',
-            },
-          );
-        }
-
-        return Response.json(
-          statusCode: 500,
-          body: {
-            'error': 'Failed to process document with GROBID ($grobidOrTeiError) and Gemini Fallback ($geminiFallbackError).',
-            'code': 'PROCESSING_FAILED',
-          },
-        );
+        await GeminiService(
+          apiKey: apiKey,
+          modelName: BackendConfig.geminiModel,
+        ).extractPaperSynthesis(paper);
+      } catch (error) {
+        // Keep the extracted TEI content available even when synthesis fails.
+        paper.executiveSummary = 'Chưa thể tổng hợp bằng Gemini: $error';
       }
     }
 
-    // 3. Compute vector embeddings for paper sections (Optimization via Semantic Embedding)
-    try {
-      await EmbeddingService.embedPaperSections(paper: paper, apiKey: apiKey);
-    } catch (_) {}
-
-    // 4. Save to Cache for subsequent requests
+    // Save the extracted paper. Chat retrieval runs locally without embeddings.
     final paperJson = paper.toJson();
     cacheService.set(cacheKey, paperJson);
 
-    // 5. Return synthesized paper
+    // Return synthesized paper
     return Response.json(
       body: paperJson,
       headers: {
@@ -177,7 +157,8 @@ Future<Response> onRequest(RequestContext context) async {
     );
   } catch (e) {
     final errStr = e.toString().toLowerCase();
-    if (errStr.contains('api_key_invalid') || errStr.contains('api key not valid')) {
+    if (errStr.contains('api_key_invalid') ||
+        errStr.contains('api key not valid')) {
       return Response.json(
         statusCode: 401,
         body: {
@@ -185,11 +166,14 @@ Future<Response> onRequest(RequestContext context) async {
           'code': 'INVALID_API_KEY',
         },
       );
-    } else if (errStr.contains('quota') || errStr.contains('resource_exhausted') || errStr.contains('429')) {
+    } else if (errStr.contains('quota') ||
+        errStr.contains('resource_exhausted') ||
+        errStr.contains('429')) {
       return Response.json(
         statusCode: 429,
         body: {
-          'error': 'Gemini API rate limit or quota exceeded (429). Please wait a moment and retry.',
+          'error':
+              'Gemini API rate limit or quota exceeded (429). Please wait a moment and retry.',
           'code': 'RATE_LIMIT_EXCEEDED',
         },
       );

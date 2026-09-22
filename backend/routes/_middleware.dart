@@ -12,7 +12,7 @@ Handler middleware(Handler handler) {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers':
-              'Origin, Content-Type, Accept, Authorization, gemini-api-key, X-Requested-With',
+              'Origin, Content-Type, Accept, X-Requested-With',
           'Access-Control-Max-Age': '86400',
         },
       );
@@ -26,7 +26,7 @@ Handler middleware(Handler handler) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers':
-            'Origin, Content-Type, Accept, Authorization, gemini-api-key, X-Requested-With',
+            'Origin, Content-Type, Accept, X-Requested-With',
       },
     );
   };

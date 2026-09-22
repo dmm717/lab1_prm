@@ -18,4 +18,5 @@ coverage/
 # Environments & Cache
 .env
 .env.*
+!.env.example
 .cache/

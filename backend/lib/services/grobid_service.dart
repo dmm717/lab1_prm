@@ -1,23 +1,29 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../core/constants/app_constants.dart';
+import '../core/config/backend_config.dart';
 
 class GrobidService {
   final Dio _dio;
   String baseUrl;
 
   GrobidService({String? baseUrl, Dio? dio})
-      : baseUrl = baseUrl ?? AppConstants.defaultGrobidUrl,
-        _dio = dio ??
-            Dio(BaseOptions(
+    : baseUrl = baseUrl ?? BackendConfig.grobidUrl,
+      _dio =
+          dio ??
+          Dio(
+            BaseOptions(
               connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 180), // GROBID parsing large PDFs may take 30-90s
-            ));
+              receiveTimeout: const Duration(
+                seconds: 180,
+              ), // GROBID parsing large PDFs may take 30-90s
+            ),
+          );
 
   /// Checks if the local GROBID Docker container is healthy and responding
   Future<bool> checkIsAlive() async {
     try {
-      final response = await _dio.get(
+      final response = await _dio.get<String>(
         '$baseUrl${AppConstants.grobidIsAliveEndpoint}',
         options: Options(responseType: ResponseType.plain),
       );
@@ -46,7 +52,7 @@ class GrobidService {
     });
 
     try {
-      final response = await _dio.post(
+      final response = await _dio.post<String>(
         '$baseUrl${AppConstants.grobidFulltextEndpoint}',
         data: formData,
         onSendProgress: onSendProgress,
@@ -71,7 +77,7 @@ class GrobidService {
         throw Exception(
           'Cannot connect to GROBID at $baseUrl. '
           'Please make sure the Docker container is running: '
-          '"docker compose up -d" or "docker run -p 8070:8070 grobid/grobid:0.8.1"',
+          '"docker compose up -d".',
         );
       }
       throw Exception('GROBID processing error: ${e.message}');

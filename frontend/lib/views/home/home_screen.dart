@@ -8,7 +8,6 @@ import '../widgets/grobid_status_badge.dart';
 import '../widgets/local_pdf_bar.dart';
 import '../widgets/paper_overview_panel.dart';
 import '../widgets/recent_papers_dialog.dart';
-import '../widgets/settings_dialog.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,456 +15,239 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<PaperController>();
-
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppTheme.heroBackgroundGradient,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 1. Desktop Island Header Bar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border, width: 1),
-                    boxShadow: AppTheme.softShadow,
-                  ),
-                  child: Row(
-                    children: [
-                      // Brand Logo Mark with Emerald Gradient
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          gradient: AppTheme.emeraldGradient,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.28),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.auto_stories_rounded, color: Colors.white, size: 18),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                'PaperChat',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                  color: AppTheme.textPrimary,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              ShaderMask(
-                                shaderCallback: (bounds) => AppTheme.emeraldGradient.createShader(bounds),
-                                child: Text(
-                                  'AI Desktop',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  gradient: AppTheme.mintPillGradient,
-                                  borderRadius: BorderRadius.circular(99),
-                                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-                                ),
-                                child: Text(
-                                  'CHUẨN IMGRaD',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 9,
-                                    color: AppTheme.primaryDark,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            'Phân Tích & Đối Thoại Bài Báo Khoa Học (Tệp PDF Local)',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10.5,
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-
-                      // Live GROBID Status Badge
-                      const GrobidStatusBadge(),
-                      const SizedBox(width: 10),
-
-                      // Saved Papers Library Button
-                      Tooltip(
-                        message: 'Thư viện bài báo đã lưu trên máy',
-                        child: InkWell(
-                          onTap: () => RecentPapersDialog.show(context),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6.5),
-                            decoration: BoxDecoration(
-                              color: AppTheme.backgroundSubtle,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.bookmark_border_rounded, size: 16, color: AppTheme.textSecondary),
-                                const SizedBox(width: 5),
-                                Text(
-                                  'Thư viện',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                if (controller.recentPapers.isNotEmpty) ...[
-                                  const SizedBox(width: 5),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5.5, vertical: 1.5),
-                                    decoration: BoxDecoration(
-                                      gradient: AppTheme.emeraldGradient,
-                                      borderRadius: BorderRadius.circular(99),
-                                    ),
-                                    child: Text(
-                                      '${controller.recentPapers.length}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Settings Button
-                      Tooltip(
-                        message: 'Cài đặt Gemini API Key & Cổng dịch vụ',
-                        child: InkWell(
-                          onTap: () => SettingsDialog.show(context),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.all(7.5),
-                            decoration: BoxDecoration(
-                              color: AppTheme.backgroundSubtle,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: const Icon(Icons.tune_rounded, size: 16, color: AppTheme.textSecondary),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: 72,
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              decoration: const BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(bottom: BorderSide(color: AppTheme.border)),
               ),
-
-              // 2. Main Content Viewport
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-                  child: Column(
-                    children: [
-                      // Dedicated Local PDF Ingestion & Active Bar
-                      const LocalPdfBar(),
-                      const SizedBox(height: 10),
-
-                      // Dynamic Split-Pane Area
-                      Expanded(
-                        child: controller.hasPaper
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // Left Pane: IMGRaD Scientific Navigator (44% width)
-                                  Expanded(
-                                    flex: 44,
-                                    child: PaperOverviewPanel(paper: controller.currentPaper!),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // Right Pane: Conversational Chat (56% width)
-                                  const Expanded(
-                                    flex: 56,
-                                    child: ChatPanel(),
-                                  ),
-                                ],
-                              )
-                            : _buildWelcomeHero(context),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeHero(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 960),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Eyebrow Pill with Pulse Dot
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
-                decoration: BoxDecoration(
-                  gradient: AppTheme.mintPillGradient,
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        gradient: AppTheme.emeraldGradient,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    Text(
-                      'DESKTOP APP • NẠP TỆP PDF LOCAL • CHUẨN CẤU TRÚC KHOA HỌC IMGRaD',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.9,
-                        color: AppTheme.primaryDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Grand Headline
-              Text(
-                'Phân Tích Bài Báo Khoa Học Chuẩn IMGRaD',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
-                  height: 1.25,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Subtext
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Text(
-                  'Bóc tách toàn diện tệp PDF thành 4 trụ cột học thuật kinh điển: Đặt Vấn Đề (Introduction), '
-                  'Phương Pháp Luận (Methodology), Kết Quả Thực Nghiệm (Results) và Thảo Luận / Hạn Chế (Discussion). '
-                  'Hỏi đáp và đối chiếu chính xác theo từng cấu trúc cùng Gemini AI.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    color: AppTheme.textSecondary,
-                    height: 1.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 4 IMGRaD Pillars Bento Grid
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  _buildBentoCard(
-                    icon: Icons.lightbulb_outline_rounded,
-                    iconColor: AppTheme.secondary,
-                    pillarCode: 'I',
-                    title: 'Introduction',
-                    vietnameseTitle: 'Đặt Vấn Đề & Mục Tiêu',
-                    description:
-                        'Xác định bối cảnh nghiên cứu, bài toán khoa học, câu hỏi nghiên cứu và mục tiêu đóng góp cốt lõi.',
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        color: Colors.white, size: 21),
                   ),
-                  const SizedBox(width: 10),
-                  _buildBentoCard(
-                    icon: Icons.precision_manufacturing_outlined,
-                    iconColor: AppTheme.primary,
-                    pillarCode: 'M',
-                    title: 'Methodology',
-                    vietnameseTitle: 'Phương Pháp Luận',
-                    description:
-                        'Kiến trúc mô hình, giải thuật, công thức toán học, tập dữ liệu thực nghiệm và quy trình thử nghiệm.',
+                  const SizedBox(width: 12),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('PaperChat',
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary)),
+                      Text('BÀN NGHIÊN CỨU',
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.7,
+                              color: AppTheme.textMuted)),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  _buildBentoCard(
-                    icon: Icons.insights_rounded,
-                    iconColor: AppTheme.accent,
-                    pillarCode: 'R',
-                    title: 'Results',
-                    vietnameseTitle: 'Kết Quả & Số Liệu',
-                    description:
-                        'Số liệu định lượng, bảng biểu so sánh, kết quả benchmark đánh giá so với các công trình trước.',
-                  ),
-                  const SizedBox(width: 10),
-                  _buildBentoCard(
-                    icon: Icons.forum_outlined,
-                    iconColor: AppTheme.primaryDark,
-                    pillarCode: 'D',
-                    title: 'Discussion',
-                    vietnameseTitle: 'Thảo Luận & Hạn Chế',
-                    description:
-                        'Phân tích ý nghĩa thực tiễn, làm rõ các hạn chế nghiên cứu và định hướng phát triển tương lai.',
+                  const SizedBox(width: 32),
+                  Container(width: 1, height: 24, color: AppTheme.border),
+                  const SizedBox(width: 20),
+                  Text(
+                      controller.hasPaper
+                          ? 'Đang đọc tài liệu'
+                          : 'Không gian làm việc',
+                      style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textSecondary)),
+                  const Spacer(),
+                  const GrobidStatusBadge(),
+                  const SizedBox(width: 16),
+                  TextButton.icon(
+                    onPressed: () => RecentPapersDialog.show(context),
+                    icon: const Icon(Icons.library_books_outlined, size: 18),
+                    label: Text(
+                        'Thư viện${controller.recentPapers.isEmpty ? '' : '  ${controller.recentPapers.length}'}'),
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBentoCard({
-    required IconData icon,
-    required Color iconColor,
-    required String pillarCode,
-    required String title,
-    required String vietnameseTitle,
-    required String description,
-  }) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border, width: 1),
-          boxShadow: AppTheme.softShadow,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Decorative Gradient Strip
-              Container(
-                height: 3,
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.cardAccentGradient,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(14),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(28, 22, 28, 24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.mintPillGradient,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: iconColor.withValues(alpha: 0.2)),
-                          ),
-                          child: Icon(icon, size: 16, color: iconColor),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: iconColor,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '[$pillarCode]',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    Text(
-                      vietnameseTitle,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      description,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        color: AppTheme.textSecondary,
-                        height: 1.4,
-                      ),
+                    const LocalPdfBar(),
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: controller.hasPaper
+                          ? LayoutBuilder(builder: (context, constraints) {
+                              if (constraints.maxWidth < 780) {
+                                return Column(children: [
+                                  Expanded(
+                                      child: PaperOverviewPanel(
+                                          paper: controller.currentPaper!)),
+                                  const SizedBox(height: 12),
+                                  const Expanded(child: ChatPanel()),
+                                ]);
+                              }
+                              return Row(children: [
+                                Expanded(
+                                    flex: 47,
+                                    child: PaperOverviewPanel(
+                                        paper: controller.currentPaper!)),
+                                const SizedBox(width: 16),
+                                const Expanded(flex: 53, child: ChatPanel()),
+                              ]);
+                            })
+                          : _Welcome(controller: controller),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _Welcome extends StatelessWidget {
+  const _Welcome({required this.controller});
+  final PaperController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 850;
+      final intro = Container(
+        padding: const EdgeInsets.all(34),
+        decoration: BoxDecoration(
+            color: AppTheme.primary, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('01 / BẮT ĐẦU',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: const Color(0xFFB6D0C7))),
+            const SizedBox(height: 18),
+            Text('Đọc bài báo\nkhoa học rõ hơn.',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: wide ? 36 : 29,
+                    height: 1.14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.3,
+                    color: Colors.white)),
+            const SizedBox(height: 18),
+            Text(
+                'Chọn PDF từ máy tính. GROBID trích xuất tiêu đề, tác giả, tóm tắt và từng mục nội dung để bạn đọc, tra cứu và đặt câu hỏi.',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    height: 1.65,
+                    color: const Color(0xFFD5E4DE))),
+            const SizedBox(height: 28),
+            const Divider(color: Color(0xFF49675D)),
+            const SizedBox(height: 16),
+            Text('PDF LOCAL  →  GROBID / TEI  →  PHÂN TÍCH',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                    color: const Color(0xFFB6D0C7))),
+          ],
+        ),
+      );
+      final guide = Container(
+        padding: const EdgeInsets.all(30),
+        decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.border)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('QUY TRÌNH',
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.8,
+                    color: AppTheme.primary)),
+            const SizedBox(height: 22),
+            _step('01', 'Chọn tài liệu PDF',
+                'Mở bài báo khoa học được lưu trên máy.'),
+            const SizedBox(height: 24),
+            _step('02', 'Trích xuất bằng GROBID',
+                'Nhận dữ liệu TEI có cấu trúc từ Docker local.'),
+            const SizedBox(height: 24),
+            _step('03', 'Đọc và hỏi đáp',
+                'Xem các mục nghiên cứu và trò chuyện với AI khi backend đã cấu hình key.'),
+            if (controller.recentPapers.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Divider(color: AppTheme.border),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () => RecentPapersDialog.show(context),
+                icon: const Icon(Icons.history_rounded),
+                label: Text(
+                    'Mở lại ${controller.recentPapers.length} tài liệu đã lưu'),
+              ),
+            ],
+          ],
+        ),
+      );
+      if (!wide) {
+        return SingleChildScrollView(
+            child:
+                Column(children: [intro, const SizedBox(height: 14), guide]));
+      }
+      return Row(children: [
+        Expanded(flex: 5, child: intro),
+        const SizedBox(width: 16),
+        Expanded(flex: 4, child: guide)
+      ]);
+    });
+  }
+
+  Widget _step(String number, String title, String detail) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(number,
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primary)),
+          const SizedBox(width: 16),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary)),
+                const SizedBox(height: 4),
+                Text(detail,
+                    style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        height: 1.5,
+                        color: AppTheme.textSecondary)),
+              ])),
+        ],
+      );
 }

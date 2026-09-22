@@ -41,7 +41,8 @@ class RecentPapersDialog extends StatelessWidget {
                       color: AppTheme.primarySubtle,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.bookmark_added_rounded, color: AppTheme.primary, size: 20),
+                    child: const Icon(Icons.bookmark_added_rounded,
+                        color: AppTheme.primary, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -58,13 +59,15 @@ class RecentPapersDialog extends StatelessWidget {
                       ),
                       Text(
                         '${papers.length} bài báo đã lưu để đọc ngoại tuyến',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted),
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12, color: AppTheme.textMuted),
                       ),
                     ],
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textMuted),
+                    icon: const Icon(Icons.close_rounded,
+                        size: 20, color: AppTheme.textMuted),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -96,19 +99,22 @@ class RecentPapersDialog extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Phân tích đường dẫn ArXiv hoặc tải file PDF lên để tự động lưu vào thư viện đọc ngoại tuyến.',
+                              'Chọn tệp PDF trên máy tính để trích xuất bằng GROBID và lưu vào thư viện.',
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted),
+                              style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12, color: AppTheme.textMuted),
                             ),
                           ],
                         ),
                       )
                     : ListView.separated(
                         itemCount: papers.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final paper = papers[index];
-                          final isCurrent = controller.currentPaper?.id == paper.id;
+                          final isCurrent =
+                              controller.currentPaper?.id == paper.id;
 
                           return InkWell(
                             onTap: () {
@@ -117,12 +123,17 @@ class RecentPapersDialog extends StatelessWidget {
                             },
                             borderRadius: BorderRadius.circular(14),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               decoration: BoxDecoration(
-                                color: isCurrent ? AppTheme.primarySubtle : AppTheme.backgroundSubtle,
+                                color: isCurrent
+                                    ? AppTheme.primarySubtle
+                                    : AppTheme.backgroundSubtle,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: isCurrent ? AppTheme.primary.withValues(alpha: 0.3) : AppTheme.border,
+                                  color: isCurrent
+                                      ? AppTheme.primary.withValues(alpha: 0.3)
+                                      : AppTheme.border,
                                 ),
                               ),
                               child: Row(
@@ -135,20 +146,25 @@ class RecentPapersDialog extends StatelessWidget {
                                           ? Icons.bookmark_rounded
                                           : Icons.bookmark_border_rounded,
                                       size: 20,
-                                      color: isCurrent ? AppTheme.primary : AppTheme.textMuted,
+                                      color: isCurrent
+                                          ? AppTheme.primary
+                                          : AppTheme.textMuted,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           paper.title,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.w700,
-                                            color: isCurrent ? AppTheme.primary : AppTheme.textPrimary,
+                                            color: isCurrent
+                                                ? AppTheme.primary
+                                                : AppTheme.textPrimary,
                                             height: 1.3,
                                           ),
                                           maxLines: 2,
@@ -158,16 +174,21 @@ class RecentPapersDialog extends StatelessWidget {
                                         Row(
                                           children: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 7, vertical: 2),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 7,
+                                                      vertical: 2),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: AppTheme.border),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                    color: AppTheme.border),
                                               ),
                                               child: Text(
                                                 paper.sourceId,
-                                                style: GoogleFonts.plusJakartaSans(
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   color: AppTheme.primaryDark,
                                                   fontWeight: FontWeight.w700,
@@ -177,17 +198,23 @@ class RecentPapersDialog extends StatelessWidget {
                                             if (paper.isFallback) ...[
                                               const SizedBox(width: 6),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 7, vertical: 2),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 7,
+                                                        vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: AppTheme.warningSubtle,
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                   border: Border.all(
-                                                      color: AppTheme.warning.withValues(alpha: 0.3)),
+                                                      color: AppTheme.warning
+                                                          .withValues(
+                                                              alpha: 0.3)),
                                                 ),
                                                 child: Text(
                                                   'Gemini Dự Phòng',
-                                                  style: GoogleFonts.plusJakartaSans(
+                                                  style: GoogleFonts
+                                                      .plusJakartaSans(
                                                     fontSize: 10,
                                                     color: AppTheme.warning,
                                                     fontWeight: FontWeight.w700,
@@ -200,12 +227,14 @@ class RecentPapersDialog extends StatelessWidget {
                                               Expanded(
                                                 child: Text(
                                                   paper.authors.join(', '),
-                                                  style: GoogleFonts.plusJakartaSans(
+                                                  style: GoogleFonts
+                                                      .plusJakartaSans(
                                                     fontSize: 11,
                                                     color: AppTheme.textMuted,
                                                   ),
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -216,8 +245,10 @@ class RecentPapersDialog extends StatelessWidget {
                                   ),
                                   IconButton(
                                     tooltip: 'Xóa khỏi thư viện',
-                                    icon: const Icon(Icons.delete_outline_rounded,
-                                        size: 18, color: AppTheme.textMuted),
+                                    icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: AppTheme.textMuted),
                                     onPressed: () {
                                       controller.deleteRecentPaper(paper.id);
                                     },
@@ -236,4 +267,3 @@ class RecentPapersDialog extends StatelessWidget {
     );
   }
 }
-

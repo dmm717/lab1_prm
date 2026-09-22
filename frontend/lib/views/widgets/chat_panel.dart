@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:provider/provider.dart';
 import '../../controllers/paper_controller.dart';
 import '../../core/theme/app_theme.dart';
@@ -17,6 +19,9 @@ class ChatPanel extends StatefulWidget {
 class _ChatPanelState extends State<ChatPanel> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  String? _lastPaperId;
+  int _lastMessageCount = 0;
+  int _lastMessageLength = 0;
 
   @override
   void dispose() {
@@ -27,12 +32,8 @@ class _ChatPanelState extends State<ChatPanel> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
   }
@@ -51,6 +52,20 @@ class _ChatPanelState extends State<ChatPanel> {
     final controller = context.watch<PaperController>();
     final messages = controller.messages;
     final paper = controller.currentPaper;
+    final latestLength = messages.isEmpty ? 0 : messages.last.content.length;
+    final paperChanged = _lastPaperId != paper?.id;
+    final hasNewMessage = paperChanged || messages.length != _lastMessageCount;
+    final contentChanged = latestLength != _lastMessageLength;
+    final nearBottom = !_scrollController.hasClients ||
+        _scrollController.position.maxScrollExtent -
+                _scrollController.position.pixels <
+            120;
+    if (hasNewMessage || (contentChanged && nearBottom)) {
+      _scrollToBottom();
+    }
+    _lastPaperId = paper?.id;
+    _lastMessageCount = messages.length;
+    _lastMessageLength = latestLength;
 
     return Container(
       decoration: BoxDecoration(
@@ -103,7 +118,7 @@ class _ChatPanelState extends State<ChatPanel> {
                         ),
                       ),
                       Text(
-                        'Truy xuất ngữ cảnh bài báo qua Vector RAG (<500ms)',
+                        'Hỏi đáp theo nội dung PDF đã trích xuất',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10.5,
                           color: AppTheme.textMuted,
@@ -235,8 +250,8 @@ class _ChatPanelState extends State<ChatPanel> {
                       const SizedBox(width: 5),
                       _buildQuickQuestionChip(
                         controller,
-                        '🔑 Key word chính là j',
-                        'Key word chính là j',
+                        '🔑 Từ khóa chính',
+                        'Các từ khóa chính của bài báo là gì?',
                       ),
                     ],
                   ),
@@ -384,7 +399,18 @@ class _ChatPanelState extends State<ChatPanel> {
                     MarkdownBody(
                       data: message.content,
                       selectable: true,
+                      inlineSyntaxes: [
+                        _DisplayMathSyntax(),
+                        _InlineMathSyntax(),
+                      ],
+                      builders: {
+                        'math': _MathElementBuilder(),
+                        'math-display': _MathElementBuilder(display: true),
+                      },
                       styleSheet: MarkdownStyleSheet(
+                        horizontalRuleDecoration: const BoxDecoration(
+                          border: Border(top: BorderSide(color: AppTheme.border)),
+                        ),
                         p: GoogleFonts.plusJakartaSans(
                           color: isUser ? Colors.white : AppTheme.textPrimary,
                           fontSize: 12.5,
@@ -486,3 +512,47 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 }
 
+class _InlineMathSyntax extends md.InlineSyntax {
+  _InlineMathSyntax() : super(r'\$([^$\n]+)\$', startCharacter: 0x24);
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.text('math', match[1]!));
+    return true;
+  }
+}
+
+class _DisplayMathSyntax extends md.InlineSyntax {
+  _DisplayMathSyntax() : super(r'\$\$([^$]+)\$\$', startCharacter: 0x24);
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    parser.addNode(md.Element.text('math-display', match[1]!));
+    return true;
+  }
+}
+
+class _MathElementBuilder extends MarkdownElementBuilder {
+  _MathElementBuilder({this.display = false});
+
+  final bool display;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final expression = element.textContent;
+    return Math.tex(
+      expression,
+      mathStyle: display ? MathStyle.display : MathStyle.text,
+      textStyle: parentStyle,
+      onErrorFallback: (_) => Text(
+        expression,
+        style: parentStyle,
+      ),
+    );
+  }
+}

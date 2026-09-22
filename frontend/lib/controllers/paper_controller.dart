@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/constants/app_constants.dart';
 import '../models/chat_message.dart';
 import '../models/keyword_model.dart';
 import '../models/paper_model.dart';
-import '../services/arxiv_service.dart';
 import '../services/backend_service.dart';
 import '../services/paper_storage_service.dart';
 
@@ -22,10 +20,6 @@ class PaperController extends ChangeNotifier {
   late BackendService _backendService;
   final PaperStorageService _storageService = PaperStorageService();
 
-  String _geminiApiKey = AppConstants.defaultGeminiApiKey;
-  String _selectedModel = AppConstants.defaultGeminiModel;
-  String _backendUrl = 'http://localhost:8080';
-
   bool _isGrobidAlive = false;
   IngestionStage _stage = IngestionStage.idle;
   String _statusMessage = '';
@@ -39,9 +33,6 @@ class PaperController extends ChangeNotifier {
   List<PaperModel> _recentPapers = [];
 
   // Getters
-  String get grobidUrl => _backendUrl; // alias for compatibility with UI
-  String get geminiApiKey => _geminiApiKey;
-  String get selectedModel => _selectedModel;
   bool get isGrobidAlive => _isGrobidAlive;
   IngestionStage get stage => _stage;
   String get statusMessage => _statusMessage;
@@ -56,19 +47,16 @@ class PaperController extends ChangeNotifier {
   List<PaperModel> get recentPapers => List.unmodifiable(_recentPapers);
 
   PaperController() {
-    _backendService = BackendService(backendUrl: _backendUrl);
-    initSettings();
+    _backendService = BackendService();
+    _initialize();
   }
 
-  Future<void> initSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedKey = prefs.getString(AppConstants.keyGeminiApiKey) ?? '';
-    _geminiApiKey = savedKey.isNotEmpty ? savedKey : AppConstants.defaultGeminiApiKey;
-    _backendUrl = prefs.getString(AppConstants.keyGrobidBaseUrl) ?? 'http://localhost:8080';
-    _selectedModel = prefs.getString(AppConstants.keySelectedModel) ?? AppConstants.defaultGeminiModel;
-
-    _backendService = BackendService(backendUrl: _backendUrl);
-
+  Future<void> _initialize() async {
+    // Remove credentials and settings saved by older desktop builds.
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove('gemini_api_key');
+    await preferences.remove('selected_gemini_model');
+    await preferences.remove('grobid_base_url');
     await loadRecentPapers();
     notifyListeners();
     await checkGrobidHealth();
@@ -79,136 +67,37 @@ class PaperController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateSettings({
-    required String apiKey,
-    required String grobidUrl,
-    required String model,
-  }) async {
-    _geminiApiKey = apiKey.trim();
-    _backendUrl = grobidUrl.trim();
-    _selectedModel = model;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.keyGeminiApiKey, _geminiApiKey);
-    await prefs.setString(AppConstants.keyGrobidBaseUrl, _backendUrl);
-    await prefs.setString(AppConstants.keySelectedModel, _selectedModel);
-
-    _backendService = BackendService(backendUrl: _backendUrl);
-
-    notifyListeners();
-    await checkGrobidHealth();
-  }
-
   Future<bool> checkGrobidHealth() async {
-    _isGrobidAlive = await _backendService.checkIsAlive();
+    _isGrobidAlive = await _backendService.checkGrobidHealth();
     notifyListeners();
     return _isGrobidAlive;
   }
 
-  Future<void> processInputUrl(String inputUrl) async {
+  Future<void> processLocalPdf(Uint8List pdfBytes, String filename) async {
+    if (_stage != IngestionStage.idle &&
+        _stage != IngestionStage.completed &&
+        _stage != IngestionStage.error) {
+      return;
+    }
     _errorMessage = null;
-    final cleanUrl = inputUrl.trim();
-    if (cleanUrl.isEmpty) return;
 
-    final isWebUrl = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://');
-    final arxivId = ArxivService.extractArxivId(cleanUrl);
-
-    if (!isWebUrl && arxivId == null) {
-      _errorMessage = 'Đường dẫn không hợp lệ. Vui lòng nhập liên kết bài báo (VnExpress, báo chí, hoặc ArXiv).';
+    if (pdfBytes.length < 5 ||
+        pdfBytes[0] != 0x25 ||
+        pdfBytes[1] != 0x50 ||
+        pdfBytes[2] != 0x44 ||
+        pdfBytes[3] != 0x46 ||
+        pdfBytes[4] != 0x2D) {
+      _stage = IngestionStage.error;
+      _errorMessage = 'Tệp được chọn không phải PDF hợp lệ.';
       notifyListeners();
       return;
     }
 
     try {
-      _stage = IngestionStage.downloadingPdf;
-      _statusMessage = 'Đang kết nối tới liên kết bài báo...';
-      _progress = 0.15;
-      notifyListeners();
-
-      PaperModel paper;
-
-      if (isWebUrl) {
-        _statusMessage = 'Đang tải và bóc tách nội dung bài báo...';
-        _progress = 0.40;
-        notifyListeners();
-
-        paper = await _backendService.processArticleUrl(
-          cleanUrl,
-          geminiApiKey: _geminiApiKey,
-        );
-      } else {
-        // Pure ArXiv ID without full URL
-        _statusMessage = 'Đang tải PDF từ ArXiv ($arxivId)...';
-        _progress = 0.30;
-        notifyListeners();
-
-        final pdfBytes = await ArxivService.downloadPdf(arxivId!);
-        _stage = IngestionStage.synthesizingGemini;
-        _statusMessage = 'Đang gửi lên máy chủ backend để phân tích...';
-        _progress = 0.60;
-        notifyListeners();
-
-        paper = await _backendService.processFulltextDocument(
-          pdfBytes,
-          filename: '$arxivId.pdf',
-          sourceId: arxivId,
-          sourceUrl: ArxivService.getPdfUrl(arxivId),
-          geminiApiKey: _geminiApiKey,
-        );
-      }
-
-      _statusMessage = 'Đang hoàn tất trích xuất cấu trúc & vector embeddings...';
-      _progress = 0.95;
-      notifyListeners();
-
-      _currentPaper = paper;
-      _stage = IngestionStage.completed;
-      _statusMessage = 'Đã phân tích bài báo thành công!';
-      _progress = 1.0;
-
-      // Persist paper to offline local storage (Task F1)
-      await _storageService.savePaper(paper);
-      await loadRecentPapers();
-
-      // Check for saved chat history or create default greeting (Task F2)
-      final savedMessages = await _storageService.getChatHistory(paper.id);
-      _messages.clear();
-
-      if (savedMessages.isNotEmpty) {
-        _messages.addAll(savedMessages);
-      } else {
-        _messages.add(
-          ChatMessage.assistant(
-            'Tôi đã phân tích thành công bài báo **"${paper.title}"**'
-            '${paper.isFallback ? ' *(chế độ dự phòng Gemini Multimodal)*' : ''}.\n\n'
-            '💡 **Gợi ý câu hỏi nhanh (bấm vào để hỏi AI ngay):**\n'
-            '- 📌 *Nội dung bài báo là j*\n'
-            '- 🔑 *Key word chính là j*\n'
-            '${paper.suggestedQuestions.isNotEmpty ? '- ❓ *${paper.suggestedQuestions.first}*\n' : ''}\n'
-            'Bạn có thể hỏi bằng bất kỳ ngôn ngữ nào, tôi sẽ phản hồi chính xác bằng đúng ngôn ngữ đó!',
-          ),
-        );
-        await _storageService.saveChatHistory(paper.id, _messages);
-      }
-
-      notifyListeners();
-    } catch (e) {
-      _stage = IngestionStage.error;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-    }
-  }
-
-  // Alias for backward compatibility
-  Future<void> processArxivUrl(String inputUrl) => processInputUrl(inputUrl);
-
-  Future<void> processLocalPdf(Uint8List pdfBytes, String filename) async {
-    _errorMessage = null;
-
-    try {
-      final cleanId = filename.replaceAll('.pdf', '');
-      _stage = IngestionStage.synthesizingGemini;
-      _statusMessage = 'Đang tải $filename ($progressPercentage%)...';
+      final cleanId =
+          filename.replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
+      _stage = IngestionStage.parsingGrobid;
+      _statusMessage = 'Đang gửi $filename đến GROBID...';
       _progress = 0.20;
       notifyListeners();
 
@@ -217,28 +106,27 @@ class PaperController extends ChangeNotifier {
         filename: filename,
         sourceId: cleanId,
         sourceUrl: 'local://$filename',
-        geminiApiKey: _geminiApiKey,
         onSendProgress: (sent, total) {
           if (total > 0) {
             final percent = sent / total;
             _progress = 0.20 + percent * 0.50;
             final mbSent = (sent / (1024 * 1024)).toStringAsFixed(1);
             final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
-            _statusMessage = 'Đang tải file PDF lên: $mbSent MB / $mbTotal MB ($progressPercentage%)';
+            _statusMessage = percent >= 1
+                ? 'GROBID đang trích xuất nội dung PDF...'
+                : 'Đang gửi PDF: $mbSent MB / $mbTotal MB';
             notifyListeners();
           }
         },
       );
 
-      _statusMessage = 'Đang bóc tách cấu trúc và tổng hợp nội dung bài báo...';
+      _statusMessage = 'Đã trích xuất nội dung bài báo.';
       _progress = 0.90;
       notifyListeners();
 
       _currentPaper = paper;
       _stage = IngestionStage.completed;
-      _statusMessage = paper.isFallback
-          ? 'Đã bóc tách bài báo thành công qua chế độ dự phòng Gemini Multimodal!'
-          : 'Đã phân tích bài báo thành công qua GROBID + Gemini!';
+      _statusMessage = 'Đã trích xuất PDF bằng GROBID.';
       _progress = 1.0;
 
       // Persist paper to offline local storage (Task F1)
@@ -255,7 +143,7 @@ class PaperController extends ChangeNotifier {
         final imgrad = paper.effectiveImgrad;
         _messages.add(
           ChatMessage.assistant(
-            'Xin chào! Tôi đã bóc tách bài báo khoa học **"${paper.title}"** theo chuẩn cấu trúc **IMGRaD**:\n\n'
+            'Đã trích xuất bài báo **"${paper.title}"** bằng GROBID.\n\n'
             '📘 **[I - Introduction / Đặt Vấn Đề & Mục Tiêu]**\n'
             '${imgrad.introduction.summary}\n\n'
             '⚙️ **[M - Methodology / Phương Pháp Luận & Mô Hình]**\n'
@@ -331,17 +219,8 @@ class PaperController extends ChangeNotifier {
     final cleanText = text.trim();
     if (cleanText.isEmpty || _currentPaper == null || _isStreaming) return;
 
-    if (_geminiApiKey.isEmpty) {
-      _messages.add(ChatMessage.user(cleanText));
-      _messages.add(
-        ChatMessage.assistant(
-          '⚠️ Vui lòng cấu hình Google Gemini API Key trong phần **Cài đặt** (biểu tượng bánh răng góc trên bên phải) để kích hoạt tính năng đối thoại AI.',
-        ),
-      );
-      notifyListeners();
-      return;
-    }
-
+    final paper = _currentPaper!;
+    final priorHistory = List<ChatMessage>.from(_messages);
     final userMsg = ChatMessage.user(cleanText);
     final assistantMsg = ChatMessage.streaming();
 
@@ -352,24 +231,30 @@ class PaperController extends ChangeNotifier {
 
     try {
       final stream = _backendService.streamPaperChat(
-        geminiApiKey: _geminiApiKey,
-        paper: _currentPaper!,
-        history: _messages,
+        paper: paper,
+        history: priorHistory,
         userMessage: cleanText,
       );
 
       await for (final chunk in stream) {
+        if (_currentPaper?.id != paper.id) break;
         assistantMsg.content += chunk;
         notifyListeners();
       }
 
       assistantMsg.isStreaming = false;
       // Persist updated chat conversation (Task F2)
-      await _storageService.saveChatHistory(_currentPaper!.id, _messages);
+      if (_currentPaper?.id == paper.id) {
+        await _storageService.saveChatHistory(paper.id, _messages);
+      }
     } catch (e) {
       assistantMsg.isStreaming = false;
       assistantMsg.isError = true;
-      assistantMsg.content = 'Lỗi trong quá trình phản hồi: ${e.toString().replaceAll('Exception: ', '')}';
+      assistantMsg.content =
+          'Lỗi trong quá trình phản hồi: ${e.toString().replaceAll('Exception: ', '')}';
+      if (_currentPaper?.id == paper.id) {
+        await _storageService.saveChatHistory(paper.id, _messages);
+      }
     } finally {
       _isStreaming = false;
       notifyListeners();
@@ -384,10 +269,12 @@ class PaperController extends ChangeNotifier {
   }
 
   void clearChat() async {
+    if (_isStreaming) return;
     _messages.clear();
     if (_currentPaper != null) {
       _messages.add(
-        ChatMessage.assistant('Cuộc trò chuyện đã được đặt lại. Bạn muốn tìm hiểu thêm điều gì về "${_currentPaper!.title}"?'),
+        ChatMessage.assistant(
+            'Cuộc trò chuyện đã được đặt lại. Bạn muốn tìm hiểu thêm điều gì về "${_currentPaper!.title}"?'),
       );
       await _storageService.saveChatHistory(_currentPaper!.id, _messages);
     }
@@ -403,7 +290,9 @@ class PaperController extends ChangeNotifier {
     buffer.writeln('---\n');
 
     for (final msg in _messages) {
-      final role = msg.role == MessageRole.user ? '### 👤 Người Dùng' : '### 🤖 Trợ Lý PaperChat AI';
+      final role = msg.role == MessageRole.user
+          ? '### 👤 Người Dùng'
+          : '### 🤖 Trợ Lý PaperChat AI';
       buffer.writeln('$role\n');
       buffer.writeln('${msg.content}\n');
     }

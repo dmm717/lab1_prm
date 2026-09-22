@@ -8,6 +8,7 @@ class TeiParserService {
     required String teiXmlString,
     required String sourceId,
     required String sourceUrl,
+    String? paperId,
   }) {
     final document = XmlDocument.parse(teiXmlString);
 
@@ -33,7 +34,7 @@ class TeiParserService {
     final initialKeywords = _extractTeiKeywords(document);
 
     return PaperModel(
-      id: sourceId,
+      id: paperId ?? sourceId,
       sourceId: sourceId,
       sourceUrl: sourceUrl,
       title: title,
@@ -50,8 +51,12 @@ class TeiParserService {
     try {
       final titleStmt = doc.findAllElements('titleStmt').firstOrNull;
       if (titleStmt != null) {
-        final mainTitle = titleStmt.findElements('title').firstWhere(
-              (el) => el.getAttribute('type') == 'main' || el.getAttribute('level') == 'a',
+        final mainTitle = titleStmt
+            .findElements('title')
+            .firstWhere(
+              (el) =>
+                  el.getAttribute('type') == 'main' ||
+                  el.getAttribute('level') == 'a',
               orElse: () => titleStmt.findElements('title').first,
             );
         return mainTitle.innerText.trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -74,7 +79,9 @@ class TeiParserService {
               .findElements('forename')
               .map((e) => e.innerText.trim())
               .join(' ');
-          final surname = persName.findElements('surname').firstOrNull?.innerText.trim() ?? '';
+          final surname =
+              persName.findElements('surname').firstOrNull?.innerText.trim() ??
+              '';
           final fullName = '$forenames $surname'.trim();
           if (fullName.isNotEmpty && !authors.contains(fullName)) {
             authors.add(fullName);
@@ -89,7 +96,10 @@ class TeiParserService {
     try {
       final abstractEl = doc.findAllElements('abstract').firstOrNull;
       if (abstractEl != null) {
-        final paragraphs = abstractEl.findElements('p').map((p) => p.innerText.trim()).toList();
+        final paragraphs = abstractEl
+            .findElements('p')
+            .map((p) => p.innerText.trim())
+            .toList();
         if (paragraphs.isNotEmpty) {
           return paragraphs.join('\n\n');
         }
@@ -101,7 +111,9 @@ class TeiParserService {
 
   static String? _extractPublicationDate(XmlDocument doc) {
     try {
-      final dateEl = doc.findAllElements('date').firstWhere(
+      final dateEl = doc
+          .findAllElements('date')
+          .firstWhere(
             (el) => el.getAttribute('type') == 'published',
             orElse: () => doc.findAllElements('date').first,
           );
@@ -123,9 +135,13 @@ class TeiParserService {
           final sectionNumber = head?.getAttribute('n');
 
           // Collect all paragraphs <p> inside this div
-          final paragraphs = div.findElements('p').map((p) {
-            return p.innerText.trim().replaceAll(RegExp(r'\s+'), ' ');
-          }).where((text) => text.isNotEmpty).toList();
+          final paragraphs = div
+              .findElements('p')
+              .map((p) {
+                return p.innerText.trim().replaceAll(RegExp(r'\s+'), ' ');
+              })
+              .where((text) => text.isNotEmpty)
+              .toList();
 
           if (paragraphs.isNotEmpty || sectionTitle.isNotEmpty) {
             sections.add(
@@ -149,7 +165,8 @@ class TeiParserService {
       final terms = doc.findAllElements('term');
       for (final term in terms) {
         final text = term.innerText.trim();
-        if (text.isNotEmpty && !keywords.any((k) => k.term.toLowerCase() == text.toLowerCase())) {
+        if (text.isNotEmpty &&
+            !keywords.any((k) => k.term.toLowerCase() == text.toLowerCase())) {
           keywords.add(
             KeywordModel(
               term: text,
