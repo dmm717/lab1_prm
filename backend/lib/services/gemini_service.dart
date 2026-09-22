@@ -11,10 +11,33 @@ class GeminiService {
   String apiKey;
   String modelName;
 
+  static const List<String> _fallbackModels = [
+    'gemini-3.1-flash-lite',  // free tier, stable
+    'gemini-3-flash-preview', // free tier, preview
+  ];
+  
   GeminiService({
     required this.apiKey,
     this.modelName = AppConstants.defaultGeminiModel,
   });
+
+  List<String> get _candidateModels {
+    final models = [modelName, ..._fallbackModels];
+    return models.toSet().toList();
+  }
+
+  bool _isRetryableError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('no longer available') ||
+        s.contains('not found') ||
+        s.contains('503') ||
+        s.contains('404') ||
+        s.contains('high demand') ||
+        s.contains('429') ||
+        s.contains('quota exceeded') ||   // thêm
+        s.contains('resource_exhausted') ||
+        s.contains('unavailable');
+  }
 
   Future<String> _generateContentWithFallback({
     required List<Content> contents,
@@ -22,16 +45,10 @@ class GeminiService {
     String? responseMimeType,
     double temperature = 0.2,
   }) async {
-    final candidateModels = [
-      modelName,
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview',
-      'gemini-flash-latest',
-    ];
-
     Object? lastError;
-    for (final candidate in candidateModels.toSet()) {
+
+    for (int i = 0; i < _candidateModels.length; i++) {
+      final candidate = _candidateModels[i];
       try {
         final model = GenerativeModel(
           model: candidate,
@@ -52,23 +69,18 @@ class GeminiService {
         }
       } catch (e) {
         lastError = e;
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('no longer available') ||
-            errStr.contains('503') ||
-            errStr.contains('404') ||
-            errStr.contains('high demand') ||
-            errStr.contains('429')) {
-          await Future<void>.delayed(const Duration(milliseconds: 400));
+        if (_isRetryableError(e)) {
+          // Exponential backoff: 500ms, 1000ms, 2000ms...
+          final delay = Duration(milliseconds: 500 * (i + 1));
+          await Future<void>.delayed(delay);
           continue;
         }
         rethrow;
       }
     }
-    throw Exception('All Gemini models failed: $lastError');
+    throw Exception('All Gemini models failed. Last error: $lastError');
   }
 
-  /// Automatically extracts an executive summary, key contributions,
-  /// structured keywords, and starter questions from the parsed paper.
   Future<void> extractPaperSynthesis(PaperModel paper) async {
     if (apiKey.trim().isEmpty) {
       throw Exception(
@@ -76,9 +88,7 @@ class GeminiService {
       );
     }
 
-    // Provide title, abstract, and section overview to Gemini
-    final prompt =
-        '''
+    final prompt = '''
 Paper Title: ${paper.title}
 Authors: ${paper.authors.join(', ')}
 Abstract: ${paper.abstractText}
@@ -130,12 +140,10 @@ ${paper.fullStructuredText}
             .toList();
       }
     } catch (e) {
-      // Fallback: If json decoding fails, keep raw text as summary
       paper.executiveSummary = responseText;
     }
   }
 
-  /// Streams a conversational chat answer optimized with vector embeddings (Semantic RAG)
   Stream<String> streamPaperChat({
     required PaperModel paper,
     required List<ChatMessage> history,
@@ -153,8 +161,7 @@ ${paper.fullStructuredText}
     );
 
     final imgrad = paper.effectiveImgrad;
-    final imgradContext =
-        '''
+    final imgradContext = '''
 === CẤU TRÚC KHOA HỌC IMGRaD CỦA BÀI BÁO ===
 [I - INTRODUCTION / ĐẶT VẤN ĐỀ & MỤC TIÊU]:
 ${imgrad.introduction.summary}
@@ -174,8 +181,7 @@ ${imgrad.discussion.summary}
 ================================================
 ''';
 
-    final systemInstruction =
-        '''
+    final systemInstruction = '''
 You are PaperChat AI Desktop, an elite scientific researcher and AI peer reviewer assisting the user in analyzing this academic research paper.
 
 $imgradContext
@@ -196,33 +202,28 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
    - **[R] Kết Quả Then Chốt**
    - **[D] Thảo Luận & Hạn Chế**
 4. STRICT LANGUAGE MATCHING RULE:
-   - You MUST detect the language used by the user in their question (e.g. Vietnamese, English, French, Chinese, Japanese).
-   - If the user asks in Vietnamese (e.g., "Nội dung bài báo là j", "Phương pháp là gì", "Kết quả ra sao", "Hạn chế của nghiên cứu"), you MUST answer completely in natural, fluent Vietnamese.
+   - You MUST detect the language used by the user in their question.
+   - If the user asks in Vietnamese, you MUST answer completely in natural, fluent Vietnamese.
    - If the user asks in English, answer in English.
    - NEVER default to English if the user asks in Vietnamese!
 5. Render any mathematical equations using standard LaTeX syntax (\$...\$ or \$\$...\$\$).
 6. Format responses with clean Markdown, bullet points, and bold tags.
 ''';
 
-    final candidateModels = [
-      modelName,
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview',
-      'gemini-flash-latest',
-    ];
-
-    // Build chat history content
+    // Build chat history
     final usableHistory = history
         .where((msg) => !msg.isStreaming && !msg.isError)
         .toList();
     final recentHistory = usableHistory.length > 12
         ? usableHistory.sublist(usableHistory.length - 12)
-        : usableHistory;
+        : List<ChatMessage>.from(usableHistory);
+
+    // Đảm bảo history bắt đầu bằng user message
     while (recentHistory.isNotEmpty &&
         recentHistory.first.role != MessageRole.user) {
       recentHistory.removeAt(0);
     }
+
     final List<Content> chatContentHistory = [];
     for (final msg in recentHistory) {
       if (msg.role == MessageRole.user) {
@@ -233,14 +234,14 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
     }
 
     Object? lastError;
-    for (final candidate in candidateModels.toSet()) {
+
+    for (int i = 0; i < _candidateModels.length; i++) {
+      final candidate = _candidateModels[i];
       try {
         final model = GenerativeModel(
           model: candidate,
           apiKey: apiKey,
-          generationConfig: GenerationConfig(
-            temperature: 0.3,
-          ),
+          generationConfig: GenerationConfig(temperature: 0.3),
           systemInstruction: Content.system(systemInstruction),
         );
 
@@ -254,21 +255,22 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
             yield chunk.text!;
           }
         }
-        return; // Success!
+        return; // success
+
       } catch (e) {
         lastError = e;
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('no longer available') ||
-            errStr.contains('503') ||
-            errStr.contains('404') ||
-            errStr.contains('high demand') ||
-            errStr.contains('429')) {
-          await Future<void>.delayed(const Duration(milliseconds: 400));
+        if (_isRetryableError(e)) {
+          final delay = Duration(milliseconds: 500 * (i + 1));
+          await Future<void>.delayed(delay);
           continue;
         }
+        // Lỗi không retryable → ném ngay, route handler sẽ catch
         rethrow;
       }
     }
-    throw Exception('Chat streaming failed across models: $lastError');
+
+    throw Exception(
+      'Chat streaming failed across all models. Last error: $lastError',
+    );
   }
 }

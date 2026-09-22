@@ -5,7 +5,7 @@ class AppConstants {
   static const String grobidFulltextEndpoint = '/api/processFulltextDocument';
 
   // Gemini AI Configuration
-  static const String defaultGeminiModel = 'gemini-3.6-flash';
+  static const String defaultGeminiModel = 'gemini-3.1-flash-lite';
   static const String advancedGeminiModel = 'gemini-3.1-pro-preview';
 
   // Local Storage Keys
