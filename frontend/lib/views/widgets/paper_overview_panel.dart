@@ -7,13 +7,29 @@ import '../../models/imgrad_model.dart';
 import '../../models/paper_model.dart';
 import 'keyword_chips_panel.dart';
 
-class PaperOverviewPanel extends StatelessWidget {
+class PaperOverviewPanel extends StatefulWidget {
   final PaperModel paper;
 
   const PaperOverviewPanel({super.key, required this.paper});
 
   @override
+  State<PaperOverviewPanel> createState() => _PaperOverviewPanelState();
+}
+
+class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
+  int _selectedTabIndex = 0; // 0: IMGRaD, 1: Keywords, 2: Raw Sections
+  final TextEditingController _sectionSearchController = TextEditingController();
+  String _sectionSearchQuery = '';
+
+  @override
+  void dispose() {
+    _sectionSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final paper = widget.paper;
     final imgrad = paper.effectiveImgrad;
 
     return Container(
@@ -27,49 +43,32 @@ class PaperOverviewPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Column(
           children: [
-            // Top Decorative Gradient Strip
+            // Top Accent Line
             Container(
-              height: 2.5,
+              height: 3,
               decoration: const BoxDecoration(
                 gradient: AppTheme.cardAccentGradient,
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+
+            // Paper Header Brief Card
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: const BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                border: Border(bottom: BorderSide(color: AppTheme.border)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Metadata Badges
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.mintPillGradient,
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.picture_as_pdf_rounded, size: 12, color: AppTheme.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              'PDF Local: ${paper.sourceId}',
-                              style: GoogleFonts.plusJakartaSans(
-                                color: AppTheme.primaryDark,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppTheme.primarySubtle,
                           borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           'CHUẨN IMGRaD',
@@ -77,211 +76,85 @@ class PaperOverviewPanel extends StatelessWidget {
                             color: AppTheme.primaryDark,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${paper.sections.length} MỤC ĐÃ BÓC TÁCH',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
                         ),
                       ),
                       const Spacer(),
                       if (paper.publicationDate != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                          decoration: BoxDecoration(
-                            color: AppTheme.backgroundSubtle,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            paper.publicationDate!,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.textMuted,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        Text(
+                          paper.publicationDate!,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppTheme.textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-
-                  // Paper Title
+                  const SizedBox(height: 8),
                   Text(
                     paper.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16.5,
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w800,
                       color: AppTheme.textPrimary,
                       height: 1.3,
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 6),
-
-                  // Authors Row
                   if (paper.authors.isNotEmpty) ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.people_outline_rounded, size: 15, color: AppTheme.textMuted),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            paper.authors.join('  •  '),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w500,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      paper.authors.join('  •  '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    const SizedBox(height: 12),
                   ],
-
-                  const Divider(color: AppTheme.border),
-                  const SizedBox(height: 12),
-
-                  // 2. IMGRaD Structure Section Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildSectionEyebrow(
-                        'CẤU TRÚC BÀI BÁO KHOA HỌC (IMGRaD)',
-                        Icons.account_tree_rounded,
-                        AppTheme.primary,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.backgroundSubtle,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppTheme.border),
-                        ),
-                        child: Text(
-                          'I • M • R • D',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // [I] - Introduction Pillar
-                  _buildImgradPillarCard(
-                    context: context,
-                    pillar: imgrad.introduction,
-                    pillarColor: AppTheme.secondary,
-                    icon: Icons.lightbulb_outline_rounded,
-                    promptText: 'Hãy phân tích chi tiết phần Đặt Vấn Đề & Mục Tiêu Nghiên Cứu (Introduction) của bài báo.',
-                  ),
-                  const SizedBox(height: 10),
-
-                  // [M] - Methodology Pillar
-                  _buildImgradPillarCard(
-                    context: context,
-                    pillar: imgrad.methodology,
-                    pillarColor: AppTheme.primary,
-                    icon: Icons.precision_manufacturing_outlined,
-                    promptText: 'Hãy phân tích chi tiết Phương Pháp Luận & Thiết Kế Kỹ Thuật (Methodology) của bài báo.',
-                  ),
-                  const SizedBox(height: 10),
-
-                  // [R] - Results Pillar
-                  _buildImgradPillarCard(
-                    context: context,
-                    pillar: imgrad.results,
-                    pillarColor: AppTheme.accent,
-                    icon: Icons.insights_rounded,
-                    promptText: 'Hãy tổng hợp các Kết Quả Thực Nghiệm & Số Liệu Phát Hiện (Results) quan trọng nhất của bài báo.',
-                  ),
-                  const SizedBox(height: 10),
-
-                  // [D] - Discussion Pillar
-                  _buildImgradPillarCard(
-                    context: context,
-                    pillar: imgrad.discussion,
-                    pillarColor: AppTheme.primaryDark,
-                    icon: Icons.forum_outlined,
-                    promptText: 'Hãy phân tích các Thảo Luận, Hạn Chế Của Nghiên Cứu và Hướng Phát Triển (Discussion) của bài báo.',
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 3. Interactive Keywords
-                  KeywordChipsPanel(keywords: paper.keywords),
-                  const SizedBox(height: 16),
-
-                  const Divider(color: AppTheme.border),
-                  const SizedBox(height: 12),
-
-                  // 4. Raw Document Sections (Collapsible Accordion)
-                  _buildSectionEyebrow(
-                    'TẤT CẢ CHƯƠNG MỤC GỐC (${paper.sections.length} MỤC)',
-                    Icons.format_list_bulleted_rounded,
-                    AppTheme.textSecondary,
-                  ),
-                  const SizedBox(height: 8),
-
-                  if (paper.sections.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Text(
-                        'Không có đề mục văn bản bổ sung.',
-                        style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted, fontSize: 11.5),
-                      ),
-                    )
-                  else
-                    ...paper.sections.map(
-                      (section) => Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.backgroundSubtle,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                            leading: const Icon(Icons.article_outlined, size: 15, color: AppTheme.secondary),
-                            title: Text(
-                              section.displayName,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.surface,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppTheme.border),
-                                ),
-                                child: Text(
-                                  section.content.isNotEmpty ? section.content : '(Mục trống hoặc chỉ chứa công thức/hình ảnh)',
-                                  maxLines: 15,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11.5,
-                                    color: AppTheme.textSecondary,
-                                    height: 1.45,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
+              ),
+            ),
+
+            // Segmented Tab Switcher (Linear / Claude Style)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                color: AppTheme.backgroundSubtle,
+                border: Border(bottom: BorderSide(color: AppTheme.border)),
+              ),
+              child: Row(
+                children: [
+                  _buildTabButton(0, '📊 Tóm tắt IMGRaD'),
+                  const SizedBox(width: 6),
+                  _buildTabButton(1, '🔑 Từ khóa (${paper.keywords.length})'),
+                  const SizedBox(width: 6),
+                  _buildTabButton(2, '📄 Chương mục (${paper.sections.length})'),
+                ],
+              ),
+            ),
+
+            // Tab Content Body
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _buildSelectedTabContent(paper, imgrad),
               ),
             ),
           ],
@@ -290,47 +163,366 @@ class PaperOverviewPanel extends StatelessWidget {
     );
   }
 
+  Widget _buildTabButton(int index, String label) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _selectedTabIndex = index),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? AppTheme.border : Colors.transparent,
+            ),
+            boxShadow: isSelected ? AppTheme.softShadow : null,
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedTabContent(PaperModel paper, ImgradModel imgrad) {
+    switch (_selectedTabIndex) {
+      case 0:
+        return _buildImgradTab(paper, imgrad);
+      case 1:
+        return _buildKeywordsTab(paper);
+      case 2:
+        return _buildSectionsTab(paper);
+      default:
+        return _buildImgradTab(paper, imgrad);
+    }
+  }
+
+  // TAB 1: IMGRaD Structure Tab
+  Widget _buildImgradTab(PaperModel paper, ImgradModel imgrad) {
+    return ListView(
+      key: const ValueKey(0),
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Executive Summary Box (If Present)
+        if (paper.executiveSummary.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded, size: 14, color: AppTheme.primaryDark),
+                    const SizedBox(width: 6),
+                    Text(
+                      'TỔNG QUAN ĐỒNG THỜI (EXECUTIVE SUMMARY)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppTheme.primaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  paper.executiveSummary,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5,
+                    color: AppTheme.textSecondary,
+                    height: 1.55,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
+        // [I] - Introduction Pillar (Slate Blue Pastel)
+        _buildImgradPillarCard(
+          pillar: imgrad.introduction,
+          accentColor: const Color(0xFF2B5885),
+          bgColor: const Color(0xFFEBF3FA),
+          borderColor: const Color(0xFFD0DCE5),
+          promptText: 'Hãy phân tích chi tiết phần Đặt Vấn Đề & Mục Tiêu Nghiên Cứu (Introduction) của bài báo.',
+        ),
+        const SizedBox(height: 12),
+
+        // [M] - Methodology Pillar (Sage Green Pastel)
+        _buildImgradPillarCard(
+          pillar: imgrad.methodology,
+          accentColor: const Color(0xFF2F5D38),
+          bgColor: const Color(0xFFEDF3EC),
+          borderColor: const Color(0xFFCEE0CE),
+          promptText: 'Hãy phân tích chi tiết Phương Pháp Luận & Thiết Kế Kỹ Thuật (Methodology) của bài báo.',
+        ),
+        const SizedBox(height: 12),
+
+        // [R] - Results Pillar (Terracotta Amber Pastel)
+        _buildImgradPillarCard(
+          pillar: imgrad.results,
+          accentColor: const Color(0xFFB54F2B),
+          bgColor: const Color(0xFFFDF2EE),
+          borderColor: const Color(0xFFF7D6CC),
+          promptText: 'Hãy tổng hợp các Kết Quả Thực Nghiệm & Số Liệu Phát Hiện (Results) quan trọng nhất của bài báo.',
+        ),
+        const SizedBox(height: 12),
+
+        // [D] - Discussion Pillar (Muted Purple Pastel)
+        _buildImgradPillarCard(
+          pillar: imgrad.discussion,
+          accentColor: const Color(0xFF5E3D85),
+          bgColor: const Color(0xFFF4F0F9),
+          borderColor: const Color(0xFFE2D6EB),
+          promptText: 'Hãy phân tích các Thảo Luận, Hạn Chế Của Nghiên Cứu và Hướng Phát Triển (Discussion) của bài báo.',
+        ),
+
+        // Key Contributions List (If Present)
+        if (paper.contributions.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.stars_rounded, size: 14, color: AppTheme.primaryDark),
+                    const SizedBox(width: 6),
+                    Text(
+                      'ĐÓNG GÓP CHÍNH CỦA NGHIÊN CỨU',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppTheme.primaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ...paper.contributions.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.check_circle_outline_rounded,
+                            size: 14, color: AppTheme.primaryDark),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: AppTheme.textPrimary,
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // TAB 2: Keywords & Concepts Tab
+  Widget _buildKeywordsTab(PaperModel paper) {
+    return ListView(
+      key: const ValueKey(1),
+      padding: const EdgeInsets.all(16),
+      children: [
+        KeywordChipsPanel(keywords: paper.keywords),
+      ],
+    );
+  }
+
+  // TAB 3: Raw Document Sections Tab (With Search Filter)
+  Widget _buildSectionsTab(PaperModel paper) {
+    final query = _sectionSearchQuery.toLowerCase().trim();
+    final filteredSections = paper.sections.where((section) {
+      if (query.isEmpty) return true;
+      return section.title.toLowerCase().contains(query) ||
+          section.content.toLowerCase().contains(query);
+    }).toList();
+
+    return Column(
+      key: const ValueKey(2),
+      children: [
+        // Search Filter Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Container(
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundSubtle,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: TextField(
+              controller: _sectionSearchController,
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppTheme.textPrimary),
+              onChanged: (val) => setState(() => _sectionSearchQuery = val),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: false,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                hintText: 'Tìm kiếm trong ${paper.sections.length} đề mục TEI...',
+                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted),
+                prefixIcon: const Icon(Icons.search_rounded, size: 16, color: AppTheme.textMuted),
+                suffixIcon: _sectionSearchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 14),
+                        onPressed: () {
+                          _sectionSearchController.clear();
+                          setState(() => _sectionSearchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+              ),
+            ),
+          ),
+        ),
+
+        // Section Accordions List
+        Expanded(
+          child: filteredSections.isEmpty
+              ? Center(
+                  child: Text(
+                    query.isNotEmpty ? 'Không tìm thấy mục khớp từ khóa' : 'Không có đề mục văn bản.',
+                    style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  itemCount: filteredSections.length,
+                  itemBuilder: (context, index) {
+                    final section = filteredSections[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundSubtle,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          leading: const Icon(Icons.article_outlined, size: 16, color: AppTheme.primaryDark),
+                          title: Text(
+                            section.displayName,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.border),
+                              ),
+                              child: Text(
+                                section.content.isNotEmpty ? section.content : '(Mục trống hoặc chỉ chứa công thức/hình ảnh)',
+                                maxLines: 20,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildImgradPillarCard({
-    required BuildContext context,
     required ImgradPillar pillar,
-    required Color pillarColor,
-    required IconData icon,
+    required Color accentColor,
+    required Color bgColor,
+    required Color borderColor,
     required String promptText,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Accent & Header
+            // Header Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: pillarColor.withValues(alpha: 0.06),
                 border: Border(
-                  bottom: BorderSide(color: AppTheme.border.withValues(alpha: 0.8)),
-                  left: BorderSide(color: pillarColor, width: 3.5),
+                  bottom: BorderSide(color: borderColor),
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                     decoration: BoxDecoration(
-                      color: pillarColor,
+                      color: accentColor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '[${pillar.code}]',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
                         color: Colors.white,
                       ),
                     ),
@@ -354,19 +546,19 @@ class PaperOverviewPanel extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: pillarColor.withValues(alpha: 0.3)),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 11, color: pillarColor),
+                          Icon(Icons.chat_bubble_outline_rounded, size: 11, color: accentColor),
                           const SizedBox(width: 4),
                           Text(
                             'Hỏi AI',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              color: pillarColor,
+                              color: accentColor,
                             ),
                           ),
                         ],
@@ -395,7 +587,7 @@ class PaperOverviewPanel extends StatelessWidget {
                     const SizedBox(height: 8),
                     ...pillar.keyPoints.map(
                       (point) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4.0),
+                        padding: const EdgeInsets.only(bottom: 5.0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -404,7 +596,7 @@ class PaperOverviewPanel extends StatelessWidget {
                               width: 4.5,
                               height: 4.5,
                               decoration: BoxDecoration(
-                                color: pillarColor,
+                                color: accentColor,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -431,24 +623,6 @@ class PaperOverviewPanel extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionEyebrow(String title, IconData icon, Color color) {
-    return Row(
-      children: [
-        Icon(icon, size: 13, color: color),
-        const SizedBox(width: 5),
-        Text(
-          title,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
-            color: color,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -13,10 +13,8 @@ class GrobidService {
           dio ??
           Dio(
             BaseOptions(
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(
-                seconds: 180,
-              ), // GROBID parsing large PDFs may take 30-90s
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(minutes: 5),
             ),
           );
 
@@ -47,7 +45,7 @@ class GrobidService {
         filename: filename,
       ),
       'consolidateHeader': '1',
-      'consolidateCitations': '1',
+      'consolidateCitations': '0',
       'includeRawCitations': '1',
     });
 

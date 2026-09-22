@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($port)) {
     }
 }
 if ([string]::IsNullOrWhiteSpace($port)) { $port = '8080' }
-if ($port -notmatch '^\d+$') { throw 'PORT trong backend/.env phải là số.' }
+if ($port -notmatch '^\d+$') { throw 'PORT trong backend/.env phai la so.' }
 $backendDefine = "--dart-define=BACKEND_URL=http://localhost:$port"
 Push-Location $PSScriptRoot
 try {

@@ -18,7 +18,7 @@ class GrobidStatusBadge extends StatelessWidget {
       children: [
         if (isFallback) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: AppTheme.warningSubtle,
               borderRadius: BorderRadius.circular(99),
@@ -28,11 +28,11 @@ class GrobidStatusBadge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.bolt_rounded, size: 12, color: AppTheme.warning),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Text(
                   'Dự Phòng Gemini',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 10.5,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.warning,
                   ),
@@ -40,56 +40,49 @@ class GrobidStatusBadge extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
         ],
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: isOnline ? AppTheme.accentSubtle : AppTheme.errorSubtle,
+            color: isOnline ? AppTheme.secondarySubtle : AppTheme.errorSubtle,
             borderRadius: BorderRadius.circular(99),
             border: Border.all(
               color: isOnline
-                  ? AppTheme.accent.withValues(alpha: 0.25)
-                  : AppTheme.error.withValues(alpha: 0.25),
+                  ? AppTheme.secondary.withValues(alpha: 0.3)
+                  : AppTheme.error.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 6,
-                height: 6,
+                width: 7,
+                height: 7,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isOnline ? AppTheme.accent : AppTheme.error,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isOnline ? AppTheme.accent : AppTheme.error).withValues(alpha: 0.4),
-                      blurRadius: 4,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  color: isOnline ? AppTheme.secondary : AppTheme.error,
                 ),
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 6),
               Text(
                 isOnline ? 'GROBID Online' : 'GROBID Offline',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isOnline ? AppTheme.accent : AppTheme.error,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: isOnline ? AppTheme.secondary : AppTheme.error,
                 ),
               ),
-              const SizedBox(width: 3),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: () => controller.checkGrobidHealth(),
                 borderRadius: BorderRadius.circular(99),
                 child: Padding(
-                  padding: const EdgeInsets.all(1.0),
+                  padding: const EdgeInsets.all(2.0),
                   child: Icon(
                     Icons.refresh_rounded,
-                    size: 12,
-                    color: isOnline ? AppTheme.accent : AppTheme.error,
+                    size: 13,
+                    color: isOnline ? AppTheme.secondary : AppTheme.error,
                   ),
                 ),
               ),
@@ -100,4 +93,3 @@ class GrobidStatusBadge extends StatelessWidget {
     );
   }
 }
-
