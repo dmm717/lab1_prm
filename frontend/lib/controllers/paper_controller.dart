@@ -103,7 +103,6 @@ class PaperController extends ChangeNotifier {
     }
 
     try {
-      _currentPdfBytes = pdfBytes;
       final cleanId =
           filename.replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       _stage = IngestionStage.parsingGrobid;
@@ -131,6 +130,7 @@ class PaperController extends ChangeNotifier {
       );
 
       paper.localPdfPath = localPdfPath;
+      _currentPdfBytes = pdfBytes;
 
       _statusMessage = 'Đã trích xuất nội dung bài báo.';
       _progress = 0.90;

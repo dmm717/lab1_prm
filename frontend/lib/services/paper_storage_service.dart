@@ -46,7 +46,14 @@ class PaperStorageService {
         if (jsonStr != null && jsonStr.isNotEmpty) {
           try {
             final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-            papers.add(PaperModel.fromJson(map));
+            final paper = PaperModel.fromJson(map);
+            papers.add(paper);
+            final storedReferences = map['references'];
+            if ((storedReferences is! List || storedReferences.isEmpty) &&
+                paper.references.isNotEmpty) {
+              await prefs.setString(
+                  '$_prefixPaper$id', jsonEncode(paper.toJson()));
+            }
           } catch (_) {}
         }
       }
@@ -70,7 +77,8 @@ class PaperStorageService {
   }
 
   /// Saves chat messages for a specific paper
-  Future<void> saveChatHistory(String paperId, List<ChatMessage> messages) async {
+  Future<void> saveChatHistory(
+      String paperId, List<ChatMessage> messages) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       // Filter out messages that are currently streaming with empty content
