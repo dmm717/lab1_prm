@@ -11,10 +11,33 @@ class GeminiService {
   String apiKey;
   String modelName;
 
+  static const List<String> _fallbackModels = [
+    'gemini-3.1-flash-lite', // free tier, stable
+    'gemini-3-flash-preview', // free tier, preview
+  ];
+
   GeminiService({
     required this.apiKey,
     this.modelName = AppConstants.defaultGeminiModel,
   });
+
+  List<String> get _candidateModels {
+    final models = [modelName, ..._fallbackModels];
+    return models.toSet().toList();
+  }
+
+  bool _isRetryableError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('no longer available') ||
+        s.contains('not found') ||
+        s.contains('503') ||
+        s.contains('404') ||
+        s.contains('high demand') ||
+        s.contains('429') ||
+        s.contains('quota exceeded') || // thêm
+        s.contains('resource_exhausted') ||
+        s.contains('unavailable');
+  }
 
   Future<String> _generateContentWithFallback({
     required List<Content> contents,
@@ -22,16 +45,10 @@ class GeminiService {
     String? responseMimeType,
     double temperature = 0.2,
   }) async {
-    final candidateModels = [
-      modelName,
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview',
-      'gemini-flash-latest',
-    ];
-
     Object? lastError;
-    for (final candidate in candidateModels.toSet()) {
+
+    for (int i = 0; i < _candidateModels.length; i++) {
+      final candidate = _candidateModels[i];
       try {
         final model = GenerativeModel(
           model: candidate,
@@ -52,23 +69,18 @@ class GeminiService {
         }
       } catch (e) {
         lastError = e;
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('no longer available') ||
-            errStr.contains('503') ||
-            errStr.contains('404') ||
-            errStr.contains('high demand') ||
-            errStr.contains('429')) {
-          await Future<void>.delayed(const Duration(milliseconds: 400));
+        if (_isRetryableError(e)) {
+          // Exponential backoff: 500ms, 1000ms, 2000ms...
+          final delay = Duration(milliseconds: 500 * (i + 1));
+          await Future<void>.delayed(delay);
           continue;
         }
         rethrow;
       }
     }
-    throw Exception('All Gemini models failed: $lastError');
+    throw Exception('All Gemini models failed. Last error: $lastError');
   }
 
-  /// Automatically extracts an executive summary, key contributions,
-  /// structured keywords, and starter questions from the parsed paper.
   Future<void> extractPaperSynthesis(PaperModel paper) async {
     if (apiKey.trim().isEmpty) {
       throw Exception(
@@ -76,7 +88,6 @@ class GeminiService {
       );
     }
 
-    // Provide title, abstract, and section overview to Gemini
     final prompt =
         '''
 Paper Title: ${paper.title}
@@ -130,12 +141,10 @@ ${paper.fullStructuredText}
             .toList();
       }
     } catch (e) {
-      // Fallback: If json decoding fails, keep raw text as summary
       paper.executiveSummary = responseText;
     }
   }
 
-  /// Streams a conversational chat answer optimized with vector embeddings (Semantic RAG)
   Stream<String> streamPaperChat({
     required PaperModel paper,
     required List<ChatMessage> history,
@@ -194,7 +203,7 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
    - **[I] Đặt Vấn Đề & Mục Tiêu**
    - **[M] Phương Pháp Nghiên Cứu**
    - **[R] Kết Quả Then Chốt**
-   - **[D] Thảo Luận & Hạn Chế**
+   - **[D] Thảo Luận & HạnS Chế**
 4. STRICT LANGUAGE MATCHING RULE:
    - Automatically detect the exact language used by the user in their query (e.g. Vietnamese, English, Japanese, Chinese, French, German, Spanish, etc.).
    - You MUST respond ENTIRELY in the EXACT SAME LANGUAGE as the user's message.
@@ -207,25 +216,20 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
 6. Format responses with clean Markdown, bullet points, and bold tags.
 ''';
 
-    final candidateModels = [
-      modelName,
-      'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview',
-      'gemini-flash-latest',
-    ];
-
-    // Build chat history content
+    // Build chat history
     final usableHistory = history
         .where((msg) => !msg.isStreaming && !msg.isError)
         .toList();
     final recentHistory = usableHistory.length > 12
         ? usableHistory.sublist(usableHistory.length - 12)
-        : usableHistory;
+        : List<ChatMessage>.from(usableHistory);
+
+    // Đảm bảo history bắt đầu bằng user message
     while (recentHistory.isNotEmpty &&
         recentHistory.first.role != MessageRole.user) {
       recentHistory.removeAt(0);
     }
+
     final List<Content> chatContentHistory = [];
     for (final msg in recentHistory) {
       if (msg.role == MessageRole.user) {
@@ -236,14 +240,14 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
     }
 
     Object? lastError;
-    for (final candidate in candidateModels.toSet()) {
+
+    for (int i = 0; i < _candidateModels.length; i++) {
+      final candidate = _candidateModels[i];
       try {
-        final model = GenerativeModel(
+        final model = GenerativeModSel(
           model: candidate,
           apiKey: apiKey,
-          generationConfig: GenerationConfig(
-            temperature: 0.3,
-          ),
+          generationConfig: GenerationConfig(temperature: 0.3),
           systemInstruction: Content.system(systemInstruction),
         );
 
@@ -257,21 +261,21 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
             yield chunk.text!;
           }
         }
-        return; // Success!
+        return; // success
       } catch (e) {
         lastError = e;
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('no longer available') ||
-            errStr.contains('503') ||
-            errStr.contains('404') ||
-            errStr.contains('high demand') ||
-            errStr.contains('429')) {
-          await Future<void>.delayed(const Duration(milliseconds: 400));
+        if (_isRetryableError(e)) {
+          final delay = Duration(milliseconds: 500 * (i + 1));
+          await Future<void>.delayed(delay);
           continue;
         }
+        // Lỗi không retryable → ném ngay, route handler sẽ catch
         rethrow;
       }
     }
-    throw Exception('Chat streaming failed across models: $lastError');
+
+    throw Exception(
+      'Chat streaming failed across all models. Last error: $lastError',
+    );
   }
 }
