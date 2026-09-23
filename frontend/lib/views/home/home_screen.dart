@@ -22,7 +22,11 @@ class HomeScreen extends StatelessWidget {
       final file = files.single;
       final bytes = await file.readAsBytes();
       if (context.mounted) {
-        await context.read<PaperController>().processLocalPdf(bytes, file.name);
+        await context.read<PaperController>().processLocalPdf(
+              bytes,
+              file.name,
+              localPdfPath: file.path,
+            );
       }
     } catch (error) {
       if (context.mounted) {
@@ -65,7 +69,9 @@ class HomeScreen extends StatelessWidget {
                         children: [
                           // Logo Shell
                           InkWell(
-                            onTap: () => controller.hasPaper ? controller.closeCurrentPaper() : null,
+                            onTap: () => controller.hasPaper
+                                ? controller.closeCurrentPaper()
+                                : null,
                             borderRadius: BorderRadius.circular(99),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -83,7 +89,8 @@ class HomeScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: AppTheme.primarySubtle,
                                     borderRadius: BorderRadius.circular(4),
@@ -102,7 +109,8 @@ class HomeScreen extends StatelessWidget {
                           ),
 
                           const SizedBox(width: 12),
-                          Container(width: 1, height: 16, color: AppTheme.border),
+                          Container(
+                              width: 1, height: 16, color: AppTheme.border),
                           const SizedBox(width: 12),
 
                           // Document Context Tag & Title
@@ -111,21 +119,27 @@ class HomeScreen extends StatelessWidget {
                                 ? Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: AppTheme.primarySubtle,
-                                          borderRadius: BorderRadius.circular(99),
-                                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                                          borderRadius:
+                                              BorderRadius.circular(99),
+                                          border: Border.all(
+                                              color: AppTheme.primary
+                                                  .withValues(alpha: 0.3)),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             const Icon(Icons.qr_code_rounded,
-                                                size: 11, color: AppTheme.primaryDark),
+                                                size: 11,
+                                                color: AppTheme.primaryDark),
                                             const SizedBox(width: 4),
                                             Text(
                                               paper.paperCodeDisplay,
-                                              style: GoogleFonts.plusJakartaSans(
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
                                                 fontSize: 10.5,
                                                 fontWeight: FontWeight.w800,
                                                 color: AppTheme.primaryDark,
@@ -193,18 +207,20 @@ class HomeScreen extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                 InkWell(
+                                InkWell(
                                   onTap: busy ? null : () => _pickPdf(context),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(99),
                                     bottomLeft: Radius.circular(99),
                                   ),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 9),
                                     child: Row(
                                       children: [
                                         const Icon(Icons.folder_open_rounded,
-                                            size: 13, color: AppTheme.primaryDark),
+                                            size: 13,
+                                            color: AppTheme.primaryDark),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Đổi PDF',
@@ -218,15 +234,21 @@ class HomeScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                Container(width: 1, height: 14, color: AppTheme.border),
+                                Container(
+                                    width: 1,
+                                    height: 14,
+                                    color: AppTheme.border),
                                 InkWell(
-                                  onTap: () => PdfViewerDialog.show(context, paper, controller.currentPdfBytes),
+                                  onTap: () => PdfViewerDialog.show(context,
+                                      paper, controller.currentPdfBytes),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 9),
                                     child: Row(
                                       children: [
                                         const Icon(Icons.remove_red_eye_rounded,
-                                            size: 13, color: AppTheme.primaryDark),
+                                            size: 13,
+                                            color: AppTheme.primaryDark),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Xem PDF',
@@ -240,15 +262,21 @@ class HomeScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                Container(width: 1, height: 14, color: AppTheme.border),
+                                Container(
+                                    width: 1,
+                                    height: 14,
+                                    color: AppTheme.border),
                                 InkWell(
-                                  onTap: busy ? null : controller.closeCurrentPaper,
+                                  onTap: busy
+                                      ? null
+                                      : controller.closeCurrentPaper,
                                   borderRadius: const BorderRadius.only(
                                     topRight: Radius.circular(99),
                                     bottomRight: Radius.circular(99),
                                   ),
                                   child: const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 6),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 6),
                                     child: Icon(Icons.close_rounded,
                                         size: 13, color: AppTheme.textMuted),
                                   ),
@@ -262,14 +290,16 @@ class HomeScreen extends StatelessWidget {
                             onTap: busy ? null : () => _pickPdf(context),
                             borderRadius: BorderRadius.circular(99),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 11, vertical: 5),
                               decoration: BoxDecoration(
                                 color: AppTheme.primary,
                                 borderRadius: BorderRadius.circular(99),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                                  const Icon(Icons.add_rounded,
+                                      size: 14, color: Colors.white),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Chọn PDF',
@@ -295,7 +325,8 @@ class HomeScreen extends StatelessWidget {
                           onTap: () => RecentPapersDialog.show(context),
                           borderRadius: BorderRadius.circular(99),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 5),
                             decoration: BoxDecoration(
                               color: AppTheme.backgroundSubtle,
                               borderRadius: BorderRadius.circular(99),
@@ -330,7 +361,8 @@ class HomeScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(10),
@@ -393,7 +425,9 @@ class HomeScreen extends StatelessWidget {
                           const Expanded(flex: 52, child: ChatPanel()),
                         ]);
                       })
-                    : _Welcome(controller: controller, onPickPdf: () => _pickPdf(context)),
+                    : _Welcome(
+                        controller: controller,
+                        onPickPdf: () => _pickPdf(context)),
               ),
             ),
           ],
@@ -429,7 +463,8 @@ class _Welcome extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(99),
-                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                border:
+                    Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
               ),
               child: Text(
                 '01 / NỀN TẢNG PHÂN TÍCH BÀI BÁO AI',
@@ -466,13 +501,16 @@ class _Welcome extends StatelessWidget {
               onPressed: onPickPdf,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               icon: const Icon(Icons.upload_file_rounded, size: 18),
               label: Text(
                 'Tải PDF bài báo lên ngay',
-                style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.w700),
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5, fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(height: 20),
@@ -480,7 +518,8 @@ class _Welcome extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.verified_user_outlined, size: 15, color: AppTheme.primaryDark),
+                const Icon(Icons.verified_user_outlined,
+                    size: 15, color: AppTheme.primaryDark),
                 const SizedBox(width: 8),
                 Text(
                   'BẢO MẬT TUYỆT ĐỐI · PDF CHỈ XỬ LÝ LƯU TRỮ TRÊN MÁY TÍNH LOCAL',
@@ -535,7 +574,8 @@ class _Welcome extends StatelessWidget {
                 onTap: () => RecentPapersDialog.show(context),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: AppTheme.backgroundSubtle,
                     borderRadius: BorderRadius.circular(8),
@@ -544,7 +584,8 @@ class _Welcome extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.history_rounded, size: 16, color: AppTheme.primaryDark),
+                      const Icon(Icons.history_rounded,
+                          size: 16, color: AppTheme.primaryDark),
                       const SizedBox(width: 8),
                       Text(
                         'Xem lại ${controller.recentPapers.length} bài báo đã trích xuất',
@@ -565,7 +606,8 @@ class _Welcome extends StatelessWidget {
 
       if (!wide) {
         return SingleChildScrollView(
-            child: Column(children: [intro, const SizedBox(height: 14), guide]));
+            child:
+                Column(children: [intro, const SizedBox(height: 14), guide]));
       }
       return Row(children: [
         Expanded(flex: 5, child: intro),
@@ -583,7 +625,8 @@ class _Welcome extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.primarySubtle,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+              border:
+                  Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
             ),
             child: Text(
               number,

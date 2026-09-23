@@ -1,3 +1,5 @@
+import 'package:xml/xml.dart';
+
 class PaperReferenceModel {
   final String id;
   final String title;
@@ -33,6 +35,72 @@ class PaperReferenceModel {
       url: json['url'] as String?,
       rawText: json['rawText'] as String?,
     );
+  }
+
+  /// Recovers references from TEI saved by older app versions.
+  static List<PaperReferenceModel> fromTeiXml(String teiXml) {
+    if (!teiXml.contains('<listBibl')) return [];
+    try {
+      final document = XmlDocument.parse(teiXml);
+      final bibliography = document.findAllElements('listBibl').firstOrNull;
+      if (bibliography == null) return [];
+      final references = <PaperReferenceModel>[];
+      for (final entry in bibliography.children.whereType<XmlElement>()) {
+        if (entry.name.local != 'biblStruct' && entry.name.local != 'bibl') {
+          continue;
+        }
+        final analytic = entry.findElements('analytic').firstOrNull;
+        final monograph = entry.findElements('monogr').firstOrNull;
+        final rawText = entry.innerText.trim().replaceAll(RegExp(r'\s+'), ' ');
+        final title = analytic
+                ?.findElements('title')
+                .firstOrNull
+                ?.innerText
+                .trim() ??
+            monograph?.findElements('title').firstOrNull?.innerText.trim() ??
+            entry.findElements('title').firstOrNull?.innerText.trim() ??
+            rawText;
+        final authorElements = analytic?.findElements('author') ??
+            monograph?.findElements('author') ??
+            entry.findElements('author');
+        final authors = authorElements
+            .map((author) {
+              final name = author.findElements('persName').firstOrNull;
+              if (name == null) return author.innerText.trim();
+              final firstNames = name
+                  .findElements('forename')
+                  .map((part) => part.innerText.trim());
+              final surname =
+                  name.findElements('surname').firstOrNull?.innerText.trim();
+              return [...firstNames, if (surname != null) surname]
+                  .join(' ')
+                  .trim();
+            })
+            .where((author) => author.isNotEmpty)
+            .toList();
+        final date = monograph?.findAllElements('date').firstOrNull ??
+            entry.findAllElements('date').firstOrNull;
+        final doi = entry
+            .findAllElements('idno')
+            .where((id) => id.getAttribute('type')?.toLowerCase() == 'doi')
+            .firstOrNull
+            ?.innerText
+            .trim();
+        references.add(PaperReferenceModel(
+          id: entry.getAttribute('xml:id') ?? 'b${references.length}',
+          title: title.replaceAll(RegExp(r'\s+'), ' '),
+          authors: authors,
+          year: date?.getAttribute('when') ?? date?.innerText.trim(),
+          journal:
+              monograph?.findElements('title').firstOrNull?.innerText.trim(),
+          doi: doi,
+          rawText: rawText,
+        ));
+      }
+      return references;
+    } catch (_) {
+      return [];
+    }
   }
 
   Map<String, dynamic> toJson() => {

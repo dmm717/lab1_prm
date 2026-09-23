@@ -20,8 +20,10 @@ class PaperOverviewPanel extends StatefulWidget {
 }
 
 class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
-  int _selectedTabIndex = 0; // 0: IMGRaD, 1: Metadata & DOI, 2: Citations, 3: Keywords, 4: Raw Sections
-  final TextEditingController _sectionSearchController = TextEditingController();
+  int _selectedTabIndex =
+      0; // 0: IMGRaD, 1: Metadata & DOI, 2: Citations, 3: Keywords, 4: Raw Sections
+  final TextEditingController _sectionSearchController =
+      TextEditingController();
   String _sectionSearchQuery = '';
 
   @override
@@ -67,11 +69,13 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppTheme.primarySubtle,
                           borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.25)),
+                          border: Border.all(
+                              color: AppTheme.primary.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           'CHUẨN IMGRaD',
@@ -85,16 +89,19 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(99),
-                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                          border: Border.all(
+                              color: AppTheme.primary.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.pin_rounded, size: 10, color: AppTheme.primaryDark),
+                            const Icon(Icons.pin_rounded,
+                                size: 10, color: AppTheme.primaryDark),
                             const SizedBox(width: 3),
                             Text(
                               paper.paperCodeDisplay,
@@ -121,19 +128,23 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                       ElevatedButton.icon(
                         onPressed: () {
                           final controller = context.read<PaperController>();
-                          PdfViewerDialog.show(context, paper, controller.currentPdfBytes);
+                          PdfViewerDialog.show(
+                              context, paper, controller.currentPdfBytes);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           elevation: 0,
                         ),
-                        icon: const Icon(Icons.picture_as_pdf_rounded, size: 13),
+                        icon:
+                            const Icon(Icons.picture_as_pdf_rounded, size: 13),
                         label: Text(
                           'Xem PDF',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
                       if (paper.publicationDate != null) ...[
@@ -194,11 +205,13 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                     const SizedBox(width: 4),
                     _buildTabButton(1, '📋 Metadata & Mã số'),
                     const SizedBox(width: 4),
-                    _buildTabButton(2, '📚 Trích dẫn (${paper.references.isNotEmpty ? paper.references.length : (paper.citationCount ?? 0)})'),
+                    _buildTabButton(2,
+                        '📚 Trích dẫn${paper.references.isNotEmpty ? ' (${paper.references.length})' : ''}'),
                     const SizedBox(width: 4),
                     _buildTabButton(3, '🔑 Từ khóa (${paper.keywords.length})'),
                     const SizedBox(width: 4),
-                    _buildTabButton(4, '📄 Chương mục (${paper.sections.length})'),
+                    _buildTabButton(
+                        4, '📄 Chương mục (${paper.sections.length})'),
                   ],
                 ),
               ),
@@ -283,7 +296,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.auto_awesome_rounded, size: 14, color: AppTheme.primaryDark),
+                    const Icon(Icons.auto_awesome_rounded,
+                        size: 14, color: AppTheme.primaryDark),
                     const SizedBox(width: 6),
                     Text(
                       'TỔNG QUAN ĐỒNG THỜI (EXECUTIVE SUMMARY)',
@@ -317,7 +331,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
           accentColor: const Color(0xFF2B5885),
           bgColor: const Color(0xFFEBF3FA),
           borderColor: const Color(0xFFD0DCE5),
-          promptText: 'Hãy phân tích chi tiết phần Đặt Vấn Đề & Mục Tiêu Nghiên Cứu (Introduction) của bài báo.',
+          promptText:
+              'Hãy phân tích chi tiết phần Đặt Vấn Đề & Mục Tiêu Nghiên Cứu (Introduction) của bài báo.',
         ),
         const SizedBox(height: 12),
 
@@ -327,7 +342,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
           accentColor: const Color(0xFF2F5D38),
           bgColor: const Color(0xFFEDF3EC),
           borderColor: const Color(0xFFCEE0CE),
-          promptText: 'Hãy phân tích chi tiết Phương Pháp Luận & Thiết Kế Kỹ Thuật (Methodology) của bài báo.',
+          promptText:
+              'Hãy phân tích chi tiết Phương Pháp Luận & Thiết Kế Kỹ Thuật (Methodology) của bài báo.',
         ),
         const SizedBox(height: 12),
 
@@ -337,7 +353,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
           accentColor: const Color(0xFFB54F2B),
           bgColor: const Color(0xFFFDF2EE),
           borderColor: const Color(0xFFF7D6CC),
-          promptText: 'Hãy tổng hợp các Kết Quả Thực Nghiệm & Số Liệu Phát Hiện (Results) quan trọng nhất của bài báo.',
+          promptText:
+              'Hãy tổng hợp các Kết Quả Thực Nghiệm & Số Liệu Phát Hiện (Results) quan trọng nhất của bài báo.',
         ),
         const SizedBox(height: 12),
 
@@ -347,7 +364,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
           accentColor: const Color(0xFF5E3D85),
           bgColor: const Color(0xFFF4F0F9),
           borderColor: const Color(0xFFE2D6EB),
-          promptText: 'Hãy phân tích các Thảo Luận, Hạn Chế Của Nghiên Cứu và Hướng Phát Triển (Discussion) của bài báo.',
+          promptText:
+              'Hãy phân tích các Thảo Luận, Hạn Chế Của Nghiên Cứu và Hướng Phát Triển (Discussion) của bài báo.',
         ),
 
         // Key Contributions List (If Present)
@@ -365,7 +383,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.stars_rounded, size: 14, color: AppTheme.primaryDark),
+                    const Icon(Icons.stars_rounded,
+                        size: 14, color: AppTheme.primaryDark),
                     const SizedBox(width: 6),
                     Text(
                       'ĐÓNG GÓP CHÍNH CỦA NGHIÊN CỨU',
@@ -445,15 +464,20 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
             ),
             child: TextField(
               controller: _sectionSearchController,
-              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: AppTheme.textPrimary),
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5, color: AppTheme.textPrimary),
               onChanged: (val) => setState(() => _sectionSearchQuery = val),
               decoration: InputDecoration(
                 isDense: true,
                 filled: false,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                hintText: 'Tìm kiếm trong ${paper.sections.length} đề mục TEI...',
-                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textMuted),
-                prefixIcon: const Icon(Icons.search_rounded, size: 16, color: AppTheme.textMuted),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                hintText:
+                    'Tìm kiếm trong ${paper.sections.length} đề mục TEI...',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 12, color: AppTheme.textMuted),
+                prefixIcon: const Icon(Icons.search_rounded,
+                    size: 16, color: AppTheme.textMuted),
                 suffixIcon: _sectionSearchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear_rounded, size: 14),
@@ -476,8 +500,11 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
           child: filteredSections.isEmpty
               ? Center(
                   child: Text(
-                    query.isNotEmpty ? 'Không tìm thấy mục khớp từ khóa' : 'Không có đề mục văn bản.',
-                    style: GoogleFonts.plusJakartaSans(color: AppTheme.textMuted, fontSize: 12),
+                    query.isNotEmpty
+                        ? 'Không tìm thấy mục khớp từ khóa'
+                        : 'Không có đề mục văn bản.',
+                    style: GoogleFonts.plusJakartaSans(
+                        color: AppTheme.textMuted, fontSize: 12),
                   ),
                 )
               : ListView.builder(
@@ -493,11 +520,15 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                         border: Border.all(color: AppTheme.border),
                       ),
                       child: Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        data: Theme.of(context)
+                            .copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
-                          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                          leading: const Icon(Icons.article_outlined, size: 16, color: AppTheme.primaryDark),
+                          tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 0),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          leading: const Icon(Icons.article_outlined,
+                              size: 16, color: AppTheme.primaryDark),
                           title: Text(
                             section.displayName,
                             style: GoogleFonts.plusJakartaSans(
@@ -516,7 +547,9 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                                 border: Border.all(color: AppTheme.border),
                               ),
                               child: Text(
-                                section.content.isNotEmpty ? section.content : '(Mục trống hoặc chỉ chứa công thức/hình ảnh)',
+                                section.content.isNotEmpty
+                                    ? section.content
+                                    : '(Mục trống hoặc chỉ chứa công thức/hình ảnh)',
                                 maxLines: 20,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
@@ -566,7 +599,8 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 2.5),
                     decoration: BoxDecoration(
                       color: accentColor,
                       borderRadius: BorderRadius.circular(4),
@@ -592,19 +626,23 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                     ),
                   ),
                   InkWell(
-                    onTap: () => context.read<PaperController>().sendMessage(promptText),
+                    onTap: () =>
+                        context.read<PaperController>().sendMessage(promptText),
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3.5),
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+                        border: Border.all(
+                            color: accentColor.withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 11, color: accentColor),
+                          Icon(Icons.chat_bubble_outline_rounded,
+                              size: 11, color: accentColor),
                           const SizedBox(width: 4),
                           Text(
                             'Hỏi AI',

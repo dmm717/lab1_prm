@@ -78,7 +78,11 @@ class PaperController extends ChangeNotifier {
     return _isGrobidAlive;
   }
 
-  Future<void> processLocalPdf(Uint8List pdfBytes, String filename) async {
+  Future<void> processLocalPdf(
+    Uint8List pdfBytes,
+    String filename, {
+    String? localPdfPath,
+  }) async {
     if (_stage != IngestionStage.idle &&
         _stage != IngestionStage.completed &&
         _stage != IngestionStage.error) {
@@ -125,6 +129,8 @@ class PaperController extends ChangeNotifier {
           }
         },
       );
+
+      paper.localPdfPath = localPdfPath;
 
       _statusMessage = 'Đã trích xuất nội dung bài báo.';
       _progress = 0.90;
@@ -200,13 +206,20 @@ class PaperController extends ChangeNotifier {
         if (res['doi'] != null) _currentPaper!.doi = res['doi'].toString();
         if (res['issn'] != null) _currentPaper!.issn = res['issn'].toString();
         if (res['isbn'] != null) _currentPaper!.isbn = res['isbn'].toString();
-        if (res['arxivId'] != null) _currentPaper!.arxivId = res['arxivId'].toString();
-        if (res['journal'] != null) _currentPaper!.journal = res['journal'].toString();
-        if (res['publisher'] != null) _currentPaper!.publisher = res['publisher'].toString();
-        if (res['volume'] != null) _currentPaper!.volume = res['volume'].toString();
-        if (res['issue'] != null) _currentPaper!.issue = res['issue'].toString();
-        if (res['pages'] != null) _currentPaper!.pages = res['pages'].toString();
-        if (res['citationCount'] is int) _currentPaper!.citationCount = res['citationCount'] as int;
+        if (res['arxivId'] != null)
+          _currentPaper!.arxivId = res['arxivId'].toString();
+        if (res['journal'] != null)
+          _currentPaper!.journal = res['journal'].toString();
+        if (res['publisher'] != null)
+          _currentPaper!.publisher = res['publisher'].toString();
+        if (res['volume'] != null)
+          _currentPaper!.volume = res['volume'].toString();
+        if (res['issue'] != null)
+          _currentPaper!.issue = res['issue'].toString();
+        if (res['pages'] != null)
+          _currentPaper!.pages = res['pages'].toString();
+        if (res['citationCount'] is int)
+          _currentPaper!.citationCount = res['citationCount'] as int;
         if (res['publicationDate'] != null) {
           _currentPaper!.publicationDate = res['publicationDate'].toString();
         }
@@ -227,6 +240,7 @@ class PaperController extends ChangeNotifier {
   /// Selects a paper from local storage without re-downloading or re-uploading (Task F1)
   Future<void> selectRecentPaper(PaperModel paper) async {
     _currentPaper = paper;
+    _currentPdfBytes = null;
     _errorMessage = null;
     _stage = IngestionStage.completed;
     _statusMessage = 'Đã mở "${paper.title}" từ bộ nhớ máy.';
@@ -255,6 +269,7 @@ class PaperController extends ChangeNotifier {
     await _storageService.deletePaper(paperId);
     if (_currentPaper?.id == paperId) {
       _currentPaper = null;
+      _currentPdfBytes = null;
       _messages.clear();
       _stage = IngestionStage.idle;
       _statusMessage = '';

@@ -39,6 +39,7 @@ class PaperSection {
 class PaperModel {
   final String id;
   String sourceUrl;
+  String? localPdfPath;
   final String sourceId;
   String title;
   List<String> authors;
@@ -77,6 +78,7 @@ class PaperModel {
   PaperModel({
     required this.id,
     required this.sourceUrl,
+    this.localPdfPath,
     required this.sourceId,
     required this.title,
     this.authors = const [],
@@ -106,6 +108,7 @@ class PaperModel {
   factory PaperModel.fromJson(Map<String, dynamic> json) => PaperModel(
         id: json['id'] as String? ?? '',
         sourceUrl: json['sourceUrl'] as String? ?? '',
+        localPdfPath: json['localPdfPath'] as String?,
         sourceId: json['sourceId'] as String? ?? '',
         title: json['title'] as String? ?? '',
         authors: (json['authors'] as List<dynamic>?)
@@ -145,16 +148,25 @@ class PaperModel {
         volume: json['volume'] as String?,
         issue: json['issue'] as String?,
         pages: json['pages'] as String?,
-        references: (json['references'] as List<dynamic>?)
-                ?.map((e) => PaperReferenceModel.fromJson(e as Map<String, dynamic>))
-                .toList() ??
-            [],
+        references: _referencesFromJson(json),
         citationCount: json['citationCount'] as int?,
       );
+
+  static List<PaperReferenceModel> _referencesFromJson(
+      Map<String, dynamic> json) {
+    final saved = (json['references'] as List<dynamic>?)
+            ?.map((entry) =>
+                PaperReferenceModel.fromJson(entry as Map<String, dynamic>))
+            .toList() ??
+        [];
+    if (saved.isNotEmpty) return saved;
+    return PaperReferenceModel.fromTeiXml(json['rawTeiXml'] as String? ?? '');
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'sourceUrl': sourceUrl,
+        if (localPdfPath != null) 'localPdfPath': localPdfPath,
         'sourceId': sourceId,
         'title': title,
         'authors': authors,

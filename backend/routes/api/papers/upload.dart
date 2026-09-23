@@ -63,6 +63,27 @@ Future<Response> onRequest(RequestContext context) async {
     final cachedPaper = cacheService.get(cacheKey);
 
     if (cachedPaper != null && cachedPaper['isFallback'] != true) {
+      // Older cache entries can have an empty bibliography even though their
+      // saved GROBID TEI contains references. Repair them on the next import.
+      final cachedReferences = cachedPaper['references'];
+      final cachedTei = cachedPaper['rawTeiXml'];
+      if (cachedReferences is List &&
+          cachedReferences.isEmpty &&
+          cachedTei is String &&
+          cachedTei.contains('<listBibl')) {
+        final reparsed = TeiParserService.parse(
+          teiXmlString: cachedTei,
+          sourceId: sourceId,
+          sourceUrl: sourceUrl,
+          paperId: cacheKey,
+        );
+        if (reparsed.references.isNotEmpty) {
+          cachedPaper['references'] = reparsed.references
+              .map((reference) => reference.toJson())
+              .toList();
+          cacheService.set(cacheKey, cachedPaper);
+        }
+      }
       if (aiEnabled &&
           (cachedPaper['executiveSummary'] == null ||
               (cachedPaper['executiveSummary'] as String).isEmpty ||

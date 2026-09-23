@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,7 +17,8 @@ class PdfViewerDialog extends StatefulWidget {
     this.pdfBytes,
   });
 
-  static Future<void> show(BuildContext context, PaperModel paper, Uint8List? pdfBytes) {
+  static Future<void> show(
+      BuildContext context, PaperModel paper, Uint8List? pdfBytes) {
     return showDialog(
       context: context,
       barrierDismissible: true,
@@ -46,6 +49,19 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
   Widget build(BuildContext context) {
     final paper = widget.paper;
     final pdfBytes = widget.pdfBytes;
+    final pdfPath = paper.localPdfPath;
+    final hasLocalFile = pdfPath != null && File(pdfPath).existsSync();
+    final viewerParams = PdfViewerParams(
+      backgroundColor: const Color(0xFF525659),
+      onPageChanged: (pageNumber) {
+        if (pageNumber != null) {
+          setState(() => _currentPage = pageNumber);
+        }
+      },
+      onViewerReady: (document, controller) {
+        setState(() => _totalPages = document.pages.length);
+      },
+    );
 
     return Container(
       width: 1100,
@@ -69,7 +85,8 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppTheme.primarySubtle,
                     borderRadius: BorderRadius.circular(6),
@@ -93,11 +110,13 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                    border: Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     paper.paperCodeDisplay,
@@ -123,7 +142,8 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
                 ),
                 if (_totalPages > 0) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppTheme.backgroundSubtle,
                       borderRadius: BorderRadius.circular(20),
@@ -151,27 +171,22 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
 
           // Main PDF Visual Viewer Body
           Expanded(
-            child: pdfBytes != null && pdfBytes.isNotEmpty
+            child: hasLocalFile || (pdfBytes != null && pdfBytes.isNotEmpty)
                 ? ClipRRect(
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                    child: PdfViewer.data(
-                      pdfBytes,
-                      sourceName: paper.title,
-                      controller: _pdfController,
-                      params: PdfViewerParams(
-                        backgroundColor: const Color(0xFF525659),
-                        onPageChanged: (pageNumber) {
-                          if (pageNumber != null) {
-                            setState(() => _currentPage = pageNumber);
-                          }
-                        },
-                        onViewerReady: (document, controller) {
-                          setState(() {
-                            _totalPages = document.pages.length;
-                          });
-                        },
-                      ),
-                    ),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(16)),
+                    child: hasLocalFile
+                        ? PdfViewer.file(
+                            pdfPath,
+                            controller: _pdfController,
+                            params: viewerParams,
+                          )
+                        : PdfViewer.data(
+                            pdfBytes!,
+                            sourceName: paper.title,
+                            controller: _pdfController,
+                            params: viewerParams,
+                          ),
                   )
                 : Center(
                     child: Padding(
@@ -183,7 +198,9 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
                               size: 48, color: AppTheme.primaryDark),
                           const SizedBox(height: 16),
                           Text(
-                            'Bản PDF gốc được bảo mật và lưu local trên máy.',
+                            pdfPath == null
+                                ? 'Chưa lưu đường dẫn PDF của bài báo này.'
+                                : 'Không tìm thấy PDF tại đường dẫn đã import.',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -192,7 +209,7 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Vui lòng bấm nút "Đổi PDF" hoặc chọn lại tệp PDF trên máy để xem ảnh trực quan của toàn bộ các trang PDF gốc.',
+                            'Vui lòng chọn lại tệp PDF trên máy để xem bản gốc.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
