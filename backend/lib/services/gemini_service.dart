@@ -202,10 +202,13 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
    - **[R] Kết Quả Then Chốt**
    - **[D] Thảo Luận & Hạn Chế**
 4. STRICT LANGUAGE MATCHING RULE:
-   - You MUST detect the language used by the user in their question.
-   - If the user asks in Vietnamese, you MUST answer completely in natural, fluent Vietnamese.
-   - If the user asks in English, answer in English.
-   - NEVER default to English if the user asks in Vietnamese!
+   - Automatically detect the exact language used by the user in their query (e.g. Vietnamese, English, Japanese, Chinese, French, German, Spanish, etc.).
+   - You MUST respond ENTIRELY in the EXACT SAME LANGUAGE as the user's message.
+   - If the user asks in Vietnamese, respond in natural, fluent Vietnamese.
+   - If the user asks in English, respond in English.
+   - If the user asks in Japanese, respond in Japanese.
+   - If the user asks in Chinese, respond in Chinese.
+   - NEVER default to English or Vietnamese if the user asks in another language. Always match the input language 100%.
 5. Render any mathematical equations using standard LaTeX syntax (\$...\$ or \$\$...\$\$).
 6. Format responses with clean Markdown, bullet points, and bold tags.
 ''';

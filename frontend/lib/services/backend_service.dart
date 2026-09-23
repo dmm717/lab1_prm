@@ -16,8 +16,8 @@ class BackendService {
     Dio? dio,
   }) : _dio = dio ??
             Dio(BaseOptions(
-              connectTimeout: const Duration(seconds: 20),
-              receiveTimeout: const Duration(seconds: 240),
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(minutes: 10),
             ));
 
   /// Checks the extraction engine through the local backend.

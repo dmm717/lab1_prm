@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/chat_message.dart';
@@ -40,11 +41,11 @@ class PaperController extends ChangeNotifier {
   int get progressPercentage => (_progress * 100).clamp(0, 100).toInt();
   String? get errorMessage => _errorMessage;
   PaperModel? get currentPaper => _currentPaper;
-  List<ChatMessage> get messages => List.unmodifiable(_messages);
+  List<ChatMessage> get messages => UnmodifiableListView(_messages);
   bool get isStreaming => _isStreaming;
   bool get hasPaper => _currentPaper != null;
   bool get isFallbackMode => _currentPaper?.isFallback ?? false;
-  List<PaperModel> get recentPapers => List.unmodifiable(_recentPapers);
+  List<PaperModel> get recentPapers => UnmodifiableListView(_recentPapers);
 
   PaperController() {
     _backendService = BackendService();
