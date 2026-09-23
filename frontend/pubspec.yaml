@@ -27,6 +27,7 @@ dependencies:
   # Utility & Window Management
   file_picker: ^13.1.0
   window_manager: ^0.4.3
+  pdfrx: ^2.6.5
 
 
 dev_dependencies:

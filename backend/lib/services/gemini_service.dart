@@ -12,10 +12,10 @@ class GeminiService {
   String modelName;
 
   static const List<String> _fallbackModels = [
-    'gemini-3.1-flash-lite',  // free tier, stable
+    'gemini-3.1-flash-lite', // free tier, stable
     'gemini-3-flash-preview', // free tier, preview
   ];
-  
+
   GeminiService({
     required this.apiKey,
     this.modelName = AppConstants.defaultGeminiModel,
@@ -34,7 +34,7 @@ class GeminiService {
         s.contains('404') ||
         s.contains('high demand') ||
         s.contains('429') ||
-        s.contains('quota exceeded') ||   // thêm
+        s.contains('quota exceeded') || // thêm
         s.contains('resource_exhausted') ||
         s.contains('unavailable');
   }
@@ -88,7 +88,8 @@ class GeminiService {
       );
     }
 
-    final prompt = '''
+    final prompt =
+        '''
 Paper Title: ${paper.title}
 Authors: ${paper.authors.join(', ')}
 Abstract: ${paper.abstractText}
@@ -161,7 +162,8 @@ ${paper.fullStructuredText}
     );
 
     final imgrad = paper.effectiveImgrad;
-    final imgradContext = '''
+    final imgradContext =
+        '''
 === CẤU TRÚC KHOA HỌC IMGRaD CỦA BÀI BÁO ===
 [I - INTRODUCTION / ĐẶT VẤN ĐỀ & MỤC TIÊU]:
 ${imgrad.introduction.summary}
@@ -181,7 +183,8 @@ ${imgrad.discussion.summary}
 ================================================
 ''';
 
-    final systemInstruction = '''
+    final systemInstruction =
+        '''
 You are PaperChat AI Desktop, an elite scientific researcher and AI peer reviewer assisting the user in analyzing this academic research paper.
 
 $imgradContext
@@ -200,7 +203,7 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
    - **[I] Đặt Vấn Đề & Mục Tiêu**
    - **[M] Phương Pháp Nghiên Cứu**
    - **[R] Kết Quả Then Chốt**
-   - **[D] Thảo Luận & Hạn Chế**
+   - **[D] Thảo Luận & HạnS Chế**
 4. STRICT LANGUAGE MATCHING RULE:
    - Automatically detect the exact language used by the user in their query (e.g. Vietnamese, English, Japanese, Chinese, French, German, Spanish, etc.).
    - You MUST respond ENTIRELY in the EXACT SAME LANGUAGE as the user's message.
@@ -259,7 +262,6 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
           }
         }
         return; // success
-
       } catch (e) {
         lastError = e;
         if (_isRetryableError(e)) {

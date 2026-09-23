@@ -5,7 +5,10 @@ import '../../controllers/paper_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/imgrad_model.dart';
 import '../../models/paper_model.dart';
+import 'citations_panel.dart';
 import 'keyword_chips_panel.dart';
+import 'metadata_doi_panel.dart';
+import 'pdf_viewer_dialog.dart';
 
 class PaperOverviewPanel extends StatefulWidget {
   final PaperModel paper;
@@ -17,7 +20,7 @@ class PaperOverviewPanel extends StatefulWidget {
 }
 
 class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
-  int _selectedTabIndex = 0; // 0: IMGRaD, 1: Keywords, 2: Raw Sections
+  int _selectedTabIndex = 0; // 0: IMGRaD, 1: Metadata & DOI, 2: Citations, 3: Keywords, 4: Raw Sections
   final TextEditingController _sectionSearchController = TextEditingController();
   String _sectionSearchQuery = '';
 
@@ -81,8 +84,32 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surface,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.pin_rounded, size: 10, color: AppTheme.primaryDark),
+                            const SizedBox(width: 3),
+                            Text(
+                              paper.paperCodeDisplay,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.primaryDark,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        '${paper.sections.length} MỤC ĐÃ BÓC TÁCH',
+                        '${paper.sections.length} MỤC',
                         style: GoogleFonts.plusJakartaSans(
                           color: AppTheme.textMuted,
                           fontSize: 10,
@@ -91,7 +118,26 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                         ),
                       ),
                       const Spacer(),
-                      if (paper.publicationDate != null)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          final controller = context.read<PaperController>();
+                          PdfViewerDialog.show(context, paper, controller.currentPdfBytes);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.picture_as_pdf_rounded, size: 13),
+                        label: Text(
+                          'Xem PDF',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (paper.publicationDate != null) ...[
+                        const SizedBox(width: 8),
                         Text(
                           paper.publicationDate!,
                           style: GoogleFonts.plusJakartaSans(
@@ -100,6 +146,7 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -134,19 +181,26 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
 
             // Segmented Tab Switcher (Linear / Claude Style)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: const BoxDecoration(
                 color: AppTheme.backgroundSubtle,
                 border: Border(bottom: BorderSide(color: AppTheme.border)),
               ),
-              child: Row(
-                children: [
-                  _buildTabButton(0, '📊 Tóm tắt IMGRaD'),
-                  const SizedBox(width: 6),
-                  _buildTabButton(1, '🔑 Từ khóa (${paper.keywords.length})'),
-                  const SizedBox(width: 6),
-                  _buildTabButton(2, '📄 Chương mục (${paper.sections.length})'),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildTabButton(0, '📊 Tóm tắt IMGRaD'),
+                    const SizedBox(width: 4),
+                    _buildTabButton(1, '📋 Metadata & Mã số'),
+                    const SizedBox(width: 4),
+                    _buildTabButton(2, '📚 Trích dẫn (${paper.references.isNotEmpty ? paper.references.length : (paper.citationCount ?? 0)})'),
+                    const SizedBox(width: 4),
+                    _buildTabButton(3, '🔑 Từ khóa (${paper.keywords.length})'),
+                    const SizedBox(width: 4),
+                    _buildTabButton(4, '📄 Chương mục (${paper.sections.length})'),
+                  ],
+                ),
               ),
             ),
 
@@ -165,32 +219,27 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
 
   Widget _buildTabButton(int index, String label) {
     final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedTabIndex = index),
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AppTheme.border : Colors.transparent,
-            ),
-            boxShadow: isSelected ? AppTheme.softShadow : null,
+    return InkWell(
+      onTap: () => setState(() => _selectedTabIndex = index),
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppTheme.border : Colors.transparent,
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
-              ),
-            ),
+          boxShadow: isSelected ? AppTheme.softShadow : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
           ),
         ),
       ),
@@ -202,8 +251,12 @@ class _PaperOverviewPanelState extends State<PaperOverviewPanel> {
       case 0:
         return _buildImgradTab(paper, imgrad);
       case 1:
-        return _buildKeywordsTab(paper);
+        return MetadataDoiPanel(key: const ValueKey(1), paper: paper);
       case 2:
+        return CitationsPanel(key: const ValueKey(2), paper: paper);
+      case 3:
+        return _buildKeywordsTab(paper);
+      case 4:
         return _buildSectionsTab(paper);
       default:
         return _buildImgradTab(paper, imgrad);

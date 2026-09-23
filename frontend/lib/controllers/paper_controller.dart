@@ -28,6 +28,8 @@ class PaperController extends ChangeNotifier {
   String? _errorMessage;
 
   PaperModel? _currentPaper;
+  Uint8List? _currentPdfBytes;
+  bool _isFetchingDoi = false;
   final List<ChatMessage> _messages = [];
   bool _isStreaming = false;
 
@@ -41,6 +43,8 @@ class PaperController extends ChangeNotifier {
   int get progressPercentage => (_progress * 100).clamp(0, 100).toInt();
   String? get errorMessage => _errorMessage;
   PaperModel? get currentPaper => _currentPaper;
+  Uint8List? get currentPdfBytes => _currentPdfBytes;
+  bool get isFetchingDoi => _isFetchingDoi;
   List<ChatMessage> get messages => UnmodifiableListView(_messages);
   bool get isStreaming => _isStreaming;
   bool get hasPaper => _currentPaper != null;
@@ -95,6 +99,7 @@ class PaperController extends ChangeNotifier {
     }
 
     try {
+      _currentPdfBytes = pdfBytes;
       final cleanId =
           filename.replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       _stage = IngestionStage.parsingGrobid;
@@ -170,11 +175,53 @@ class PaperController extends ChangeNotifier {
 
   void closeCurrentPaper() {
     _currentPaper = null;
+    _currentPdfBytes = null;
     _messages.clear();
     _stage = IngestionStage.idle;
     _statusMessage = '';
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Triggers DOI Fetch tool to look up paper metadata via CrossRef API
+  Future<bool> fetchDoiForCurrentPaper() async {
+    if (_currentPaper == null || _isFetchingDoi) return false;
+
+    _isFetchingDoi = true;
+    notifyListeners();
+
+    try {
+      final res = await _backendService.fetchDoiMetadata(
+        title: _currentPaper!.title,
+        doi: _currentPaper!.doi,
+      );
+
+      if (res != null) {
+        if (res['doi'] != null) _currentPaper!.doi = res['doi'].toString();
+        if (res['issn'] != null) _currentPaper!.issn = res['issn'].toString();
+        if (res['isbn'] != null) _currentPaper!.isbn = res['isbn'].toString();
+        if (res['arxivId'] != null) _currentPaper!.arxivId = res['arxivId'].toString();
+        if (res['journal'] != null) _currentPaper!.journal = res['journal'].toString();
+        if (res['publisher'] != null) _currentPaper!.publisher = res['publisher'].toString();
+        if (res['volume'] != null) _currentPaper!.volume = res['volume'].toString();
+        if (res['issue'] != null) _currentPaper!.issue = res['issue'].toString();
+        if (res['pages'] != null) _currentPaper!.pages = res['pages'].toString();
+        if (res['citationCount'] is int) _currentPaper!.citationCount = res['citationCount'] as int;
+        if (res['publicationDate'] != null) {
+          _currentPaper!.publicationDate = res['publicationDate'].toString();
+        }
+
+        await _storageService.savePaper(_currentPaper!);
+        await loadRecentPapers();
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {
+    } finally {
+      _isFetchingDoi = false;
+      notifyListeners();
+    }
+    return false;
   }
 
   /// Selects a paper from local storage without re-downloading or re-uploading (Task F1)
