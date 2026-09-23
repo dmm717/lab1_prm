@@ -1,5 +1,6 @@
 import 'imgrad_model.dart';
 import 'keyword_model.dart';
+import 'paper_reference_model.dart';
 
 class PaperSection {
   final String title;
@@ -52,6 +53,27 @@ class PaperModel {
   bool isFallback;
   ImgradModel? imgrad;
 
+  // Metadata & Identification fields
+  String? doi;
+  String? issn;
+  String? isbn;
+  String? arxivId;
+  String? journal;
+  String? publisher;
+  String? volume;
+  String? issue;
+  String? pages;
+  List<PaperReferenceModel> references;
+  int? citationCount;
+
+  String get paperCodeDisplay {
+    if (doi != null && doi!.trim().isNotEmpty) return 'DOI: $doi';
+    if (issn != null && issn!.trim().isNotEmpty) return 'ISSN: $issn';
+    if (arxivId != null && arxivId!.trim().isNotEmpty) return 'arXiv: $arxivId';
+    if (isbn != null && isbn!.trim().isNotEmpty) return 'ISBN: $isbn';
+    return sourceId.isNotEmpty ? 'Mã: $sourceId' : 'Mã: $id';
+  }
+
   PaperModel({
     required this.id,
     required this.sourceUrl,
@@ -68,6 +90,17 @@ class PaperModel {
     this.rawTeiXml = '',
     this.isFallback = false,
     this.imgrad,
+    this.doi,
+    this.issn,
+    this.isbn,
+    this.arxivId,
+    this.journal,
+    this.publisher,
+    this.volume,
+    this.issue,
+    this.pages,
+    this.references = const [],
+    this.citationCount,
   });
 
   factory PaperModel.fromJson(Map<String, dynamic> json) => PaperModel(
@@ -103,6 +136,20 @@ class PaperModel {
         imgrad: json['imgrad'] != null
             ? ImgradModel.fromJson(json['imgrad'] as Map<String, dynamic>)
             : null,
+        doi: json['doi'] as String?,
+        issn: json['issn'] as String?,
+        isbn: json['isbn'] as String?,
+        arxivId: json['arxivId'] as String?,
+        journal: json['journal'] as String?,
+        publisher: json['publisher'] as String?,
+        volume: json['volume'] as String?,
+        issue: json['issue'] as String?,
+        pages: json['pages'] as String?,
+        references: (json['references'] as List<dynamic>?)
+                ?.map((e) => PaperReferenceModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        citationCount: json['citationCount'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -121,6 +168,17 @@ class PaperModel {
         'rawTeiXml': rawTeiXml,
         'isFallback': isFallback,
         if (imgrad != null) 'imgrad': imgrad!.toJson(),
+        if (doi != null) 'doi': doi,
+        if (issn != null) 'issn': issn,
+        if (isbn != null) 'isbn': isbn,
+        if (arxivId != null) 'arxivId': arxivId,
+        if (journal != null) 'journal': journal,
+        if (publisher != null) 'publisher': publisher,
+        if (volume != null) 'volume': volume,
+        if (issue != null) 'issue': issue,
+        if (pages != null) 'pages': pages,
+        'references': references.map((e) => e.toJson()).toList(),
+        if (citationCount != null) 'citationCount': citationCount,
       };
 
   /// Sends only the context required for chat. TEI XML and vectors are local data.
@@ -140,6 +198,8 @@ class PaperModel {
         'contributions': contributions,
         'keywords': keywords.map((keyword) => keyword.toJson()).toList(),
         if (imgrad != null) 'imgrad': imgrad!.toJson(),
+        if (doi != null) 'doi': doi,
+        if (journal != null) 'journal': journal,
       };
 
   ImgradModel get effectiveImgrad {

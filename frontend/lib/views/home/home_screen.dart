@@ -8,6 +8,7 @@ import '../widgets/app_logo.dart';
 import '../widgets/chat_panel.dart';
 import '../widgets/grobid_status_badge.dart';
 import '../widgets/paper_overview_panel.dart';
+import '../widgets/pdf_viewer_dialog.dart';
 import '../widgets/recent_papers_dialog.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -110,22 +111,23 @@ class HomeScreen extends StatelessWidget {
                                 ? Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: AppTheme.primarySubtle,
                                           borderRadius: BorderRadius.circular(99),
+                                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.picture_as_pdf_rounded,
-                                                size: 10, color: AppTheme.primaryDark),
-                                            const SizedBox(width: 3),
+                                            const Icon(Icons.qr_code_rounded,
+                                                size: 11, color: AppTheme.primaryDark),
+                                            const SizedBox(width: 4),
                                             Text(
-                                              paper.sourceId.isEmpty ? 'PDF' : paper.sourceId,
+                                              paper.paperCodeDisplay,
                                               style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w800,
                                                 color: AppTheme.primaryDark,
                                               ),
                                             ),
@@ -191,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                InkWell(
+                                 InkWell(
                                   onTap: busy ? null : () => _pickPdf(context),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(99),
@@ -206,6 +208,28 @@ class HomeScreen extends StatelessWidget {
                                         const SizedBox(width: 4),
                                         Text(
                                           'Đổi PDF',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.textPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Container(width: 1, height: 14, color: AppTheme.border),
+                                InkWell(
+                                  onTap: () => PdfViewerDialog.show(context, paper, controller.currentPdfBytes),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.remove_red_eye_rounded,
+                                            size: 13, color: AppTheme.primaryDark),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Xem PDF',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,

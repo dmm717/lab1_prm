@@ -128,4 +128,24 @@ class BackendService {
       throw Exception('Chat error: $e');
     }
   }
+
+  /// Fetches DOI and bibliographic metadata via CrossRef API backend endpoint
+  Future<Map<String, dynamic>?> fetchDoiMetadata({
+    required String title,
+    String? doi,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '$backendUrl/api/doi/fetch',
+        queryParameters: {
+          if (title.isNotEmpty) 'title': title,
+          if (doi != null && doi.isNotEmpty) 'doi': doi,
+        },
+      );
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
 }

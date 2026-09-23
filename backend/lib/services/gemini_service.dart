@@ -244,7 +244,7 @@ IMGRaD CONVERSATIONAL & CITATION RULES:
     for (int i = 0; i < _candidateModels.length; i++) {
       final candidate = _candidateModels[i];
       try {
-        final model = GenerativeModSel(
+        final model = GenerativeModel(
           model: candidate,
           apiKey: apiKey,
           generationConfig: GenerationConfig(temperature: 0.3),
